@@ -33,6 +33,8 @@ export const DEFAULT_EQUIPMENT: UserEquipment = {
   ],
 };
 
+export type Emphasis = 'strength' | 'skill' | 'conditioning';
+
 export interface Exercise {
   id: string;
   name: string;
@@ -41,6 +43,36 @@ export interface Exercise {
   type: 'reps' | 'time' | 'emom';
   equipment: EquipmentItem[];
   defaultRestSeconds: number;
+  /**
+   * Which training focuses this exercise serves. The coach rotates emphasis
+   * day to day and selects exercises whose `emphasis` includes today's focus.
+   * An exercise may serve more than one (e.g. kb-snatch = strength + conditioning).
+   * Tags are a tuning knob — adjust by feel after real use.
+   */
+  emphasis: Emphasis[];
+}
+
+/**
+ * A single prescribed exercise inside a generated PlannedWorkout. Produced by
+ * the coach engine; rendered as a target card and flowed into SetLogger as the
+ * set-1 placeholder. `exerciseId` may differ from the slot the engine started
+ * with when a ladder promotion fires (the level-up moment).
+ */
+export interface ExerciseTarget {
+  exerciseId: string;
+  sets: number;
+  targetReps?: number; // type: 'reps'
+  targetSeconds?: number; // type: 'time'
+  weightKg?: number; // which kettlebell, when applicable
+  emomMinutes?: number; // type: 'emom' (fixed prescription in v1)
+  reason: string; // "Beat last: 4×8 → 4×9" / "Leveled up: Push-Up → Ring Push-Up"
+}
+
+/** Today's generated session. Held by useTodayPlan, keyed by local dayKey(). */
+export interface PlannedWorkout {
+  date: string; // local YYYY-MM-DD (dayKey)
+  emphasis: Emphasis;
+  targets: ExerciseTarget[];
 }
 
 export interface Set {

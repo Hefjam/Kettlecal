@@ -1,5 +1,7 @@
 import { Exercise } from '../types';
 
+// emphasis tags drive the coach's day-to-day focus rotation (strength / skill /
+// conditioning). They are a tuning knob — adjust by feel after real sessions.
 export const EXERCISES: Exercise[] = [
   // ── Calisthenics: Pull ──────────────────────────────────────
   {
@@ -10,6 +12,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['pull-up-bar'],
     defaultRestSeconds: 90,
+    emphasis: ['strength', 'skill'],
   },
   {
     id: 'chin-up',
@@ -19,6 +22,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['pull-up-bar'],
     defaultRestSeconds: 90,
+    emphasis: ['strength'],
   },
   {
     id: 'muscle-up',
@@ -28,6 +32,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['pull-up-bar'],
     defaultRestSeconds: 120,
+    emphasis: ['skill'],
   },
   {
     id: 'ring-pull-up',
@@ -37,6 +42,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['gymnastics-rings'],
     defaultRestSeconds: 90,
+    emphasis: ['skill', 'strength'],
   },
   {
     id: 'ring-row',
@@ -46,6 +52,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['gymnastics-rings'],
     defaultRestSeconds: 60,
+    emphasis: ['strength', 'skill'],
   },
   {
     id: 'band-pull-apart',
@@ -55,6 +62,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['bands'],
     defaultRestSeconds: 45,
+    emphasis: ['conditioning'],
   },
   // ── Calisthenics: Push ──────────────────────────────────────
   {
@@ -65,6 +73,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['bodyweight'],
     defaultRestSeconds: 60,
+    emphasis: ['conditioning'],
   },
   {
     id: 'dip',
@@ -74,6 +83,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['dip-bars'],
     defaultRestSeconds: 90,
+    emphasis: ['strength'],
   },
   {
     id: 'ring-dip',
@@ -83,6 +93,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['gymnastics-rings'],
     defaultRestSeconds: 90,
+    emphasis: ['skill', 'strength'],
   },
   {
     id: 'ring-push-up',
@@ -92,6 +103,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['gymnastics-rings'],
     defaultRestSeconds: 60,
+    emphasis: ['skill'],
   },
   {
     id: 'pike-push-up',
@@ -101,6 +113,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['bodyweight'],
     defaultRestSeconds: 60,
+    emphasis: ['strength', 'skill'],
   },
   // ── Calisthenics: Core ──────────────────────────────────────
   {
@@ -111,6 +124,7 @@ export const EXERCISES: Exercise[] = [
     type: 'time',
     equipment: ['bodyweight'],
     defaultRestSeconds: 60,
+    emphasis: ['skill'],
   },
   {
     id: 'l-sit',
@@ -120,6 +134,7 @@ export const EXERCISES: Exercise[] = [
     type: 'time',
     equipment: ['dip-bars', 'gymnastics-rings'],
     defaultRestSeconds: 60,
+    emphasis: ['skill'],
   },
   {
     id: 'hanging-knee-raise',
@@ -129,6 +144,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['pull-up-bar'],
     defaultRestSeconds: 60,
+    emphasis: ['skill', 'conditioning'],
   },
   {
     id: 'toes-to-bar',
@@ -138,6 +154,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['pull-up-bar'],
     defaultRestSeconds: 60,
+    emphasis: ['skill', 'conditioning'],
   },
   // ── Calisthenics: Legs ──────────────────────────────────────
   {
@@ -148,6 +165,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['bodyweight'],
     defaultRestSeconds: 60,
+    emphasis: ['conditioning'],
   },
   {
     id: 'pistol-squat',
@@ -157,6 +175,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['bodyweight'],
     defaultRestSeconds: 90,
+    emphasis: ['skill', 'strength'],
   },
   // ── Kettlebell ──────────────────────────────────────────────
   {
@@ -167,6 +186,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 60,
+    emphasis: ['conditioning'],
   },
   {
     id: 'kb-double-swing',
@@ -176,6 +196,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-24kg'],
     defaultRestSeconds: 90,
+    emphasis: ['conditioning', 'strength'],
   },
   {
     id: 'kb-clean',
@@ -185,6 +206,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 60,
+    emphasis: ['strength', 'conditioning'],
   },
   {
     id: 'kb-press',
@@ -194,6 +216,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 90,
+    emphasis: ['strength'],
   },
   {
     id: 'kb-double-press',
@@ -203,6 +226,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-24kg'],
     defaultRestSeconds: 120,
+    emphasis: ['strength'],
   },
   {
     id: 'kb-snatch',
@@ -212,6 +236,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 90,
+    emphasis: ['conditioning', 'strength'],
   },
   {
     id: 'kb-clean-press',
@@ -221,6 +246,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 90,
+    emphasis: ['strength', 'conditioning'],
   },
   {
     id: 'kb-double-clean-press',
@@ -230,6 +256,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-24kg'],
     defaultRestSeconds: 120,
+    emphasis: ['strength'],
   },
   {
     id: 'kb-goblet-squat',
@@ -239,6 +266,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 60,
+    emphasis: ['strength', 'conditioning'],
   },
   {
     id: 'kb-front-squat',
@@ -248,6 +276,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 90,
+    emphasis: ['strength'],
   },
   {
     id: 'kb-double-front-squat',
@@ -257,6 +286,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-24kg'],
     defaultRestSeconds: 90,
+    emphasis: ['strength'],
   },
   {
     id: 'kb-rdl',
@@ -266,6 +296,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 60,
+    emphasis: ['strength'],
   },
   {
     id: 'kb-turkish-getup',
@@ -275,6 +306,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 120,
+    emphasis: ['skill', 'strength'],
   },
   {
     id: 'kb-row',
@@ -284,6 +316,7 @@ export const EXERCISES: Exercise[] = [
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 60,
+    emphasis: ['strength'],
   },
   {
     id: 'kb-emom-swing',
@@ -293,5 +326,6 @@ export const EXERCISES: Exercise[] = [
     type: 'emom',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 0,
+    emphasis: ['conditioning'],
   },
 ];
