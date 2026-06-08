@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
@@ -23,6 +24,7 @@ export default function WorkoutScreen() {
     currentExerciseIndex,
     isRestTimerActive,
     restSeconds,
+    targets,
     nextExercise,
     prevExercise,
     addSet,
@@ -33,9 +35,13 @@ export default function WorkoutScreen() {
 
   const { addSession } = useWorkoutHistory();
   const [emomVisible, setEmomVisible] = useState(false);
+  // completeWorkout/abandonWorkout clear the session, which re-renders this
+  // screen with session=null. Without this flag the guard below would fire
+  // router.replace('/') and clobber the navigation those handlers already did.
+  const leavingRef = useRef(false);
 
   if (!session) {
-    router.replace('/');
+    if (!leavingRef.current) router.replace('/');
     return null;
   }
 
@@ -50,31 +56,35 @@ export default function WorkoutScreen() {
   };
 
   const handleFinish = () => {
+    const finish = () => {
+      leavingRef.current = true;
+      const completed = completeWorkout();
+      if (completed) addSession(completed);
+      router.replace('/workout/complete');
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('Finish workout?\n\nYour session will be saved.')) finish();
+      return;
+    }
     Alert.alert('Finish workout?', 'Your session will be saved.', [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Finish',
-        style: 'default',
-        onPress: () => {
-          const completed = completeWorkout();
-          if (completed) addSession(completed);
-          router.replace('/workout/complete');
-        },
-      },
+      { text: 'Finish', style: 'default', onPress: finish },
     ]);
   };
 
   const handleAbandon = () => {
+    const abandon = () => {
+      leavingRef.current = true;
+      abandonWorkout();
+      router.replace('/');
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('Abandon workout?\n\nProgress will be lost.')) abandon();
+      return;
+    }
     Alert.alert('Abandon workout?', 'Progress will be lost.', [
       { text: 'Keep going', style: 'cancel' },
-      {
-        text: 'Abandon',
-        style: 'destructive',
-        onPress: () => {
-          abandonWorkout();
-          router.replace('/');
-        },
-      },
+      { text: 'Abandon', style: 'destructive', onPress: abandon },
     ]);
   };
 
@@ -120,6 +130,7 @@ export default function WorkoutScreen() {
           key={currentExercise.id}
           exercise={currentExercise}
           log={currentLog}
+          target={targets[currentExercise.id]}
           isRestActive={isRestTimerActive}
           restSeconds={restSeconds}
           onAddSet={handleAddSet}

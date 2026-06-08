@@ -3,13 +3,14 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
-import { Exercise, ExerciseLog, Set } from '../types';
+import { Exercise, ExerciseLog, ExerciseTarget, Set } from '../types';
 import { SetLogger } from './SetLogger';
 import { RestTimer } from './RestTimer';
 
 interface ExerciseCardProps {
   exercise: Exercise;
   log: ExerciseLog;
+  target?: ExerciseTarget;
   isRestActive: boolean;
   restSeconds: number;
   onAddSet: (set: Omit<Set, 'completedAt'>) => void;
@@ -21,6 +22,7 @@ interface ExerciseCardProps {
 export function ExerciseCard({
   exercise,
   log,
+  target,
   isRestActive,
   restSeconds,
   onAddSet,
@@ -55,6 +57,9 @@ export function ExerciseCard({
         )}
       </View>
 
+      {/* Coach target — the visible "beat last / leveled up" prompt */}
+      {target && <Text style={[Typography.caption, styles.targetReason]}>🎯 {target.reason}</Text>}
+
       {/* Set history */}
       {log.sets.length > 0 && (
         <View style={styles.history}>
@@ -81,9 +86,11 @@ export function ExerciseCard({
         />
       ) : (
         <SetLogger
+          key={completedSets + 1}
           exercise={exercise}
           setNumber={completedSets + 1}
           previousSet={lastSet}
+          target={target}
           onLog={onAddSet}
         />
       )}
@@ -136,6 +143,11 @@ const styles = StyleSheet.create({
   },
   tagTextDim: {
     color: Colors.text.muted,
+  },
+  targetReason: {
+    color: Colors.accent.primary,
+    marginBottom: 12,
+    fontWeight: '600',
   },
   history: {
     borderTopWidth: 1,

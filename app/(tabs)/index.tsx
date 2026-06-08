@@ -1,42 +1,51 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  FlatList,
-} from 'react-native';
-import { router } from 'expo-router';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { router, Link } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
 import { Typography } from '../../src/theme/typography';
 import { EXERCISES } from '../../src/data/exercises';
 import { useEquipment } from '../../src/stores/useEquipment';
+import { useWorkoutHistory } from '../../src/stores/useWorkoutHistory';
+import { useRotation } from '../../src/stores/useRotation';
+import { useTodayPlan } from '../../src/stores/useTodayPlan';
 import { useActiveSession } from '../../src/stores/useActiveSession';
-import { Exercise } from '../../src/types';
+import { generateWorkout, nextSwapTarget } from '../../src/engine/generateWorkout';
+import { dayKey } from '../../src/utils/dayKey';
+import { ExerciseTarget } from '../../src/types';
+
+const EMPHASIS_LABEL: Record<string, string> = {
+  strength: 'Strength focus',
+  skill: 'Skill focus',
+  conditioning: 'Conditioning focus',
+};
+
+function prescription(t: ExerciseTarget): string {
+  if (t.emomMinutes != null) return `EMOM · ${t.targetReps}/min · ${t.emomMinutes} min`;
+  if (t.targetSeconds != null) return `${t.sets} × ${t.targetSeconds}s`;
+  const reps = t.targetReps != null ? `${t.sets} × ${t.targetReps}` : `${t.sets} sets`;
+  return t.weightKg != null ? `${reps} @ ${t.weightKg}kg` : reps;
+}
 
 export default function TodayScreen() {
-  const { equipment } = useEquipment();
-  const { session, startWorkout } = useActiveSession();
-  const [selected, setSelected] = useState<string[]>([]);
-  const [filter, setFilter] = useState<'all' | 'calisthenics' | 'kettlebell'>('all');
+  const equipment = useEquipment((s) => s.equipment);
+  const sessions = useWorkoutHistory((s) => s.sessions);
+  const lastEmphasis = useRotation((s) => s.lastEmphasis);
+  const sessionCount = useRotation((s) => s.sessionCount);
+  const plan = useTodayPlan((s) => s.plan);
+  const setPlan = useTodayPlan((s) => s.setPlan);
+  const swapTarget = useTodayPlan((s) => s.swapTarget);
+  const session = useActiveSession((s) => s.session);
+  const startWorkout = useActiveSession((s) => s.startWorkout);
 
-  const availableExercises = EXERCISES.filter((ex) =>
-    ex.equipment.some((e) => equipment.items.includes(e))
-  );
-
-  const filtered = availableExercises.filter(
-    (ex) => filter === 'all' || ex.category === filter
-  );
-
-  const toggle = (id: string) =>
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-
-  const handleStart = () => {
-    if (selected.length === 0) return;
-    startWorkout(selected);
-    router.push('/workout');
-  };
+  // Generate once per local day (or after a completed session clears the plan).
+  useEffect(() => {
+    if (!plan || plan.date !== dayKey()) {
+      setPlan(generateWorkout(sessions, { lastEmphasis, sessionCount }, equipment));
+    }
+    // Intentionally keyed on `plan` only: regenerate on day-turnover / post-completion,
+    // not when equipment or history shift mid-day (that would wipe swaps).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan]);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -44,11 +53,33 @@ export default function TodayScreen() {
     day: 'numeric',
   });
 
+  const handleStart = () => {
+    if (!plan || plan.targets.length === 0) return;
+    startWorkout(
+      plan.targets.map((t) => ({ exerciseId: t.exerciseId, target: t })),
+      plan.emphasis
+    );
+    router.push('/workout');
+  };
+
+  const handleSwap = (index: number) => {
+    if (!plan) return;
+    swapTarget(index, nextSwapTarget(plan, index, sessions, equipment));
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[Typography.display, styles.greeting]}>Ready to train?</Text>
-        <Text style={[Typography.caption, { marginBottom: 24 }]}>{today}</Text>
+        <Text style={[Typography.display, styles.greeting]}>Today</Text>
+        <Text style={[Typography.caption, { marginBottom: 16 }]}>{today}</Text>
+
+        {plan && (
+          <View style={styles.emphasisBadge}>
+            <Text style={styles.emphasisText}>
+              {EMPHASIS_LABEL[plan.emphasis] ?? plan.emphasis}
+            </Text>
+          </View>
+        )}
 
         {session && (
           <TouchableOpacity style={styles.resumeBanner} onPress={() => router.push('/workout')}>
@@ -58,45 +89,38 @@ export default function TodayScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Category filter */}
-        <View style={styles.filterRow}>
-          {(['all', 'calisthenics', 'kettlebell'] as const).map((f) => (
-            <TouchableOpacity
-              key={f}
-              style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
-              onPress={() => setFilter(f)}
-            >
-              <Text
-                style={[
-                  Typography.caption,
-                  { color: filter === f ? Colors.accent.primary : Colors.text.secondary },
-                ]}
-              >
-                {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {plan?.targets.map((t, i) => {
+          const ex = EXERCISES.find((e) => e.id === t.exerciseId);
+          if (!ex) return null;
+          return (
+            <View key={`${t.exerciseId}-${i}`} style={styles.card}>
+              <View style={styles.cardTop}>
+                <View style={{ flex: 1 }}>
+                  <Text style={Typography.body}>{ex.name}</Text>
+                  <Text style={[Typography.mono, styles.prescription]}>{prescription(t)}</Text>
+                </View>
+                <TouchableOpacity style={styles.swapBtn} onPress={() => handleSwap(i)}>
+                  <Text style={styles.swapText}>⇄ Swap</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={[Typography.caption, styles.reason]}>{t.reason}</Text>
+            </View>
+          );
+        })}
 
-        {/* Exercise picker */}
-        <Text style={[Typography.label, { marginBottom: 8 }]}>
-          Pick exercises ({selected.length} selected)
-        </Text>
-        {filtered.map((ex) => (
-          <ExerciseRow
-            key={ex.id}
-            exercise={ex}
-            selected={selected.includes(ex.id)}
-            onPress={() => toggle(ex.id)}
-          />
-        ))}
+        <Link href="/freestyle" asChild>
+          <TouchableOpacity style={styles.freestyleLink}>
+            <Text style={[Typography.caption, { color: Colors.text.secondary }]}>
+              Not feeling it? → Freestyle
+            </Text>
+          </TouchableOpacity>
+        </Link>
       </ScrollView>
 
-      {/* Start button */}
-      {selected.length > 0 && (
+      {plan && plan.targets.length > 0 && (
         <View style={styles.startBar}>
           <TouchableOpacity style={styles.startBtn} onPress={handleStart}>
-            <Text style={styles.startBtnText}>Start Workout ({selected.length})</Text>
+            <Text style={styles.startBtnText}>Start Workout ({plan.targets.length})</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -104,36 +128,25 @@ export default function TodayScreen() {
   );
 }
 
-function ExerciseRow({
-  exercise,
-  selected,
-  onPress,
-}: {
-  exercise: Exercise;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={[styles.exerciseRow, selected && styles.exerciseRowSelected]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.exerciseInfo}>
-        <Text style={Typography.body}>{exercise.name}</Text>
-        <Text style={[Typography.caption, { marginTop: 2 }]}>
-          {exercise.muscleGroups.join(' · ')}
-        </Text>
-      </View>
-      {selected && <Text style={{ color: Colors.status.success, fontSize: 20 }}>✓</Text>}
-    </TouchableOpacity>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg.primary },
   scroll: { padding: 20, paddingBottom: 120 },
   greeting: { marginBottom: 4 },
+  emphasisBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.accent.glow,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 20,
+  },
+  emphasisText: {
+    color: Colors.accent.primary,
+    fontWeight: '700',
+    fontSize: 13,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   resumeBanner: {
     backgroundColor: Colors.bg.card,
     borderRadius: 12,
@@ -142,36 +155,41 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: Colors.status.warning,
   },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  filterBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
+  card: {
     backgroundColor: Colors.bg.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
   },
-  filterBtnActive: {
-    backgroundColor: Colors.accent.glow,
-  },
-  exerciseRow: {
+  cardTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    backgroundColor: Colors.bg.card,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
   },
-  exerciseRowSelected: {
-    borderColor: Colors.accent.primary,
+  prescription: {
+    fontSize: 15,
+    color: Colors.text.primary,
+    marginTop: 4,
+  },
+  reason: {
+    marginTop: 8,
+    color: Colors.accent.primary,
+  },
+  swapBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     backgroundColor: Colors.bg.elevated,
   },
-  exerciseInfo: { flex: 1 },
+  swapText: {
+    color: Colors.text.secondary,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  freestyleLink: {
+    alignItems: 'center',
+    paddingVertical: 18,
+  },
   startBar: {
     position: 'absolute',
     bottom: 0,

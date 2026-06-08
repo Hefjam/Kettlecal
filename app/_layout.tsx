@@ -16,6 +16,10 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
+          name="freestyle"
+          options={{ title: 'Freestyle', presentation: 'modal', headerShown: true }}
+        />
+        <Stack.Screen
           name="workout/index"
           options={{ title: 'Workout', presentation: 'modal', headerShown: true }}
         />

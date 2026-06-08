@@ -11,19 +11,27 @@ import {
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
-import { Exercise, Set } from '../types';
+import { Exercise, Set, ExerciseTarget } from '../types';
 
 interface SetLoggerProps {
   exercise: Exercise;
   setNumber: number;
   previousSet?: Set;
+  target?: ExerciseTarget;
   onLog: (set: Omit<Set, 'completedAt'>) => void;
 }
 
-export function SetLogger({ exercise, setNumber, previousSet, onLog }: SetLoggerProps) {
-  const [reps, setReps] = useState(String(previousSet?.reps ?? ''));
-  const [weight, setWeight] = useState(String(previousSet?.weight ?? ''));
-  const [duration, setDuration] = useState(String(previousSet?.duration ?? ''));
+export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: SetLoggerProps) {
+  // Set 1 seeds from the coach's target (the prescription); sets 2+ seed from the
+  // set you just logged. The parent re-keys this component by setNumber so these
+  // useState initializers re-run each set instead of sticking to set 1's values.
+  const useTarget = setNumber === 1 && target != null;
+  const initReps = useTarget ? target!.targetReps : previousSet?.reps;
+  const initWeight = useTarget ? target!.weightKg : previousSet?.weight;
+  const initDuration = useTarget ? target!.targetSeconds : previousSet?.duration;
+  const [reps, setReps] = useState(String(initReps ?? ''));
+  const [weight, setWeight] = useState(String(initWeight ?? ''));
+  const [duration, setDuration] = useState(String(initDuration ?? ''));
 
   const isReps = exercise.type === 'reps' || exercise.type === 'emom';
   const isTime = exercise.type === 'time';
