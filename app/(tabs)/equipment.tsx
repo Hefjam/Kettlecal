@@ -76,6 +76,10 @@ export default function EquipmentScreen() {
       Alert.alert('Invalid weight');
       return;
     }
+    if (!Number.isFinite(qty) || qty <= 0) {
+      Alert.alert('Invalid quantity');
+      return;
+    }
     addKettlebell({ weightKg: weight, quantity: qty });
     setNewKbWeight('');
     setNewKbQty('1');
@@ -166,7 +170,8 @@ export default function EquipmentScreen() {
         </View>
       ))}
 
-      {/* Add kettlebell */}
+      {/* Add kettlebell — inputs on one row, full-width Add button below so the
+          button can't be pushed off-screen on narrow phone widths. */}
       <View style={styles.addKbRow}>
         <TextInput
           style={[styles.kbInput, { flex: 2 }]}
@@ -184,10 +189,10 @@ export default function EquipmentScreen() {
           placeholder="Qty"
           placeholderTextColor={Colors.text.muted}
         />
-        <TouchableOpacity style={styles.addBtn} onPress={handleAddKb}>
-          <Text style={styles.addBtnText}>Add</Text>
-        </TouchableOpacity>
       </View>
+      <TouchableOpacity style={[styles.addBtn, { marginTop: 8 }]} onPress={handleAddKb}>
+        <Text style={styles.addBtnText}>Add kettlebell</Text>
+      </TouchableOpacity>
 
       {/* Backup */}
       <Text style={[Typography.label, { marginTop: 32, marginBottom: 6 }]}>Backup</Text>

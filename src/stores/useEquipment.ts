@@ -29,12 +29,22 @@ export const useEquipment = create<EquipmentState>()(
         })),
 
       addKettlebell: (kb) =>
-        set((s) => ({
-          equipment: {
-            ...s.equipment,
-            kettlebells: [...s.equipment.kettlebells, kb],
-          },
-        })),
+        set((s) => {
+          // Merge by weight so each weight is a single row: a duplicate add bumps
+          // the quantity instead of appending a second entry (which would collide
+          // on the weightKg React key and make removeKettlebell delete both).
+          const exists = s.equipment.kettlebells.some((k) => k.weightKg === kb.weightKg);
+          return {
+            equipment: {
+              ...s.equipment,
+              kettlebells: exists
+                ? s.equipment.kettlebells.map((k) =>
+                    k.weightKg === kb.weightKg ? { ...k, quantity: k.quantity + kb.quantity } : k
+                  )
+                : [...s.equipment.kettlebells, kb],
+            },
+          };
+        }),
 
       removeKettlebell: (weightKg) =>
         set((s) => ({
