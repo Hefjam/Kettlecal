@@ -11,7 +11,36 @@ import {
 import { Colors } from '../../src/theme/colors';
 import { Typography } from '../../src/theme/typography';
 import { useEquipment } from '../../src/stores/useEquipment';
+import { useWorkoutHistory } from '../../src/stores/useWorkoutHistory';
+import { useRotation } from '../../src/stores/useRotation';
+import { exportBackup, importBackup, StoreRegistry } from '../../src/data/backup';
 import { EquipmentItem, KettlebellWeight } from '../../src/types';
+
+/**
+ * Wires the three persisted zustand stores into the registry backup.ts expects.
+ * Lives here (not in backup.ts) so backup.ts stays free of native MMKV imports
+ * and remains unit-testable in plain Node.
+ */
+function liveStores(): StoreRegistry {
+  return {
+    equipment: {
+      get: () => ({ equipment: useEquipment.getState().equipment }),
+      set: (s) => useEquipment.setState({ equipment: s.equipment }),
+    },
+    'workout-history': {
+      get: () => ({ sessions: useWorkoutHistory.getState().sessions }),
+      set: (s) => useWorkoutHistory.setState({ sessions: s.sessions }),
+    },
+    rotation: {
+      get: () => ({
+        lastEmphasis: useRotation.getState().lastEmphasis,
+        sessionCount: useRotation.getState().sessionCount,
+      }),
+      set: (s) =>
+        useRotation.setState({ lastEmphasis: s.lastEmphasis, sessionCount: s.sessionCount }),
+    },
+  };
+}
 
 const EQUIPMENT_LABELS: Record<EquipmentItem, string> = {
   'pull-up-bar': 'Pull-Up Bar',
@@ -37,6 +66,8 @@ export default function EquipmentScreen() {
   const { equipment, toggleItem, addKettlebell, removeKettlebell } = useEquipment();
   const [newKbWeight, setNewKbWeight] = useState('');
   const [newKbQty, setNewKbQty] = useState('1');
+  const [exportText, setExportText] = useState('');
+  const [importText, setImportText] = useState('');
 
   const handleAddKb = () => {
     const weight = parseFloat(newKbWeight);
@@ -48,6 +79,39 @@ export default function EquipmentScreen() {
     addKettlebell({ weightKg: weight, quantity: qty });
     setNewKbWeight('');
     setNewKbQty('1');
+  };
+
+  const handleExport = () => {
+    const json = JSON.stringify(exportBackup(liveStores()), null, 2);
+    setExportText(json);
+  };
+
+  const handleImport = () => {
+    const text = importText.trim();
+    if (!text) {
+      Alert.alert('Paste a backup first');
+      return;
+    }
+    Alert.alert(
+      'Restore backup?',
+      'This replaces your current equipment, workout history, and rotation with the pasted backup.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: () => {
+            try {
+              importBackup(text, liveStores());
+              setImportText('');
+              Alert.alert('Backup restored');
+            } catch (e) {
+              Alert.alert('Import failed', e instanceof Error ? e.message : 'Unknown error');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const equipmentItems: EquipmentItem[] = [
@@ -124,6 +188,43 @@ export default function EquipmentScreen() {
           <Text style={styles.addBtnText}>Add</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Backup */}
+      <Text style={[Typography.label, { marginTop: 32, marginBottom: 6 }]}>Backup</Text>
+      <Text style={[Typography.caption, { marginBottom: 12 }]}>
+        Your history lives only on this phone. Export to save a copy; import to restore it.
+      </Text>
+
+      <TouchableOpacity style={styles.backupBtn} onPress={handleExport} activeOpacity={0.7}>
+        <Text style={styles.backupBtnText}>Export backup</Text>
+      </TouchableOpacity>
+      {exportText !== '' && (
+        <TextInput
+          style={styles.backupBox}
+          value={exportText}
+          multiline
+          editable={false}
+          selectTextOnFocus
+        />
+      )}
+
+      <TextInput
+        style={[styles.backupBox, { marginTop: 12 }]}
+        value={importText}
+        onChangeText={setImportText}
+        multiline
+        placeholder="Paste a backup here to restore"
+        placeholderTextColor={Colors.text.muted}
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      <TouchableOpacity
+        style={[styles.backupBtn, { marginTop: 8 }]}
+        onPress={handleImport}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.backupBtnText}>Import backup</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -187,4 +288,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addBtnText: { color: Colors.text.primary, fontWeight: '700' },
+  backupBtn: {
+    backgroundColor: Colors.bg.card,
+    borderRadius: 10,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.accent.primary,
+  },
+  backupBtnText: { color: Colors.text.primary, fontWeight: '700' },
+  backupBox: {
+    backgroundColor: Colors.bg.card,
+    borderRadius: 10,
+    marginTop: 8,
+    padding: 12,
+    minHeight: 90,
+    color: Colors.text.primary,
+    fontSize: 12,
+    textAlignVertical: 'top',
+  },
 });
