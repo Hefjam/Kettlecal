@@ -6,7 +6,7 @@ import { Typography } from '../src/theme/typography';
 import { EXERCISES } from '../src/data/exercises';
 import { useEquipment } from '../src/stores/useEquipment';
 import { useActiveSession } from '../src/stores/useActiveSession';
-import { isAvailable } from '../src/data/availability';
+import { freestyleExerciseOptions } from '../src/data/freestyle';
 import { Exercise } from '../src/types';
 
 // The manual picker, demoted from the front door. A freestyle session carries no
@@ -17,7 +17,7 @@ export default function FreestyleScreen() {
   const [selected, setSelected] = useState<string[]>([]);
   const [filter, setFilter] = useState<'all' | 'calisthenics' | 'kettlebell'>('all');
 
-  const availableExercises = EXERCISES.filter((ex) => isAvailable(ex, equipment));
+  const availableExercises = freestyleExerciseOptions(equipment, EXERCISES);
   const filtered = availableExercises.filter(
     (ex) => filter === 'all' || ex.category === filter
   );

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildTarget, ceilingHit, topNMin } from './progression';
 import { EXERCISES } from '../data/exercises';
-import { Set as WSet, ExerciseLog, UserEquipment } from '../types';
+import { Set as WSet, DEFAULT_COACH_PROFILE, ExerciseLog, UserEquipment } from '../types';
 
 const ex = (id: string) => EXERCISES.find((e) => e.id === id)!;
 const set = (reps: number, weight?: number): WSet => ({ reps, weight, completedAt: '2026-06-01T00:00:00Z' });
@@ -21,6 +21,14 @@ const noRings: UserEquipment = {
 
 const T = (id: string, lastLog: ExerciseLog | undefined, eq = full) =>
   buildTarget(ex(id), lastLog, eq, EXERCISES);
+// Auto-adjust is opt-in (off by default), so the high-RPE "hold" path only
+// fires when the profile has it enabled.
+const enabledProfile = {
+  ...DEFAULT_COACH_PROFILE,
+  autoAdjust: { ...DEFAULT_COACH_PROFILE.autoAdjust, enabled: true },
+};
+const THold = (id: string, lastLog: ExerciseLog | undefined, eq = full) =>
+  buildTarget(ex(id), lastLog, eq, EXERCISES, [], enabledProfile);
 
 describe('ceiling predicate (variable-length, uncapped sets)', () => {
   it('topNMin returns the nth-largest, -Infinity when too few sets', () => {
@@ -82,6 +90,14 @@ describe('fixed-KB progression', () => {
     expect(t).toMatchObject({ weightKg: 24, targetReps: 8 });
     expect(t.reason).toMatch(/Hold/);
   });
+
+  it('high RPE feedback holds instead of jumping weight or ladder', () => {
+    const last = log('kb-press', [set(8, 20), set(8, 20), set(8, 20), set(8, 20), set(8, 20)]);
+    last.feedback = { rpe: 9 };
+    const t = THold('kb-press', last);
+    expect(t).toMatchObject({ exerciseId: 'kb-press', weightKg: 20, targetReps: 8 });
+    expect(t.reason).toMatch(/high effort/i);
+  });
 });
 
 describe('bodyweight progression', () => {
@@ -101,6 +117,14 @@ describe('bodyweight progression', () => {
   it('hit ceiling but next rung not owned → volume creep, no promotion', () => {
     const t = T('push-up', log('push-up', [set(12), set(12), set(12), set(12)]), noRings);
     expect(t).toMatchObject({ exerciseId: 'push-up', targetReps: 13 });
+  });
+
+  it('high RPE feedback holds instead of promoting a bodyweight ladder', () => {
+    const last = log('push-up', [set(12), set(12), set(12), set(12)]);
+    last.feedback = { rpe: 9 };
+    const t = THold('push-up', last);
+    expect(t).toMatchObject({ exerciseId: 'push-up', targetReps: 12 });
+    expect(t.reason).toMatch(/high effort/i);
   });
 });
 

@@ -13,6 +13,8 @@ import { Typography } from '../../src/theme/typography';
 import { useEquipment } from '../../src/stores/useEquipment';
 import { useWorkoutHistory } from '../../src/stores/useWorkoutHistory';
 import { useRotation } from '../../src/stores/useRotation';
+import { useCoachProfile } from '../../src/stores/useCoachProfile';
+import { useTodayPlan } from '../../src/stores/useTodayPlan';
 import { exportBackup, importBackup, StoreRegistry } from '../../src/data/backup';
 import { EquipmentItem, KettlebellWeight } from '../../src/types';
 
@@ -38,6 +40,10 @@ function liveStores(): StoreRegistry {
       }),
       set: (s) =>
         useRotation.setState({ lastEmphasis: s.lastEmphasis, sessionCount: s.sessionCount }),
+    },
+    'coach-profile': {
+      get: () => ({ profile: useCoachProfile.getState().profile }),
+      set: (s) => useCoachProfile.setState({ profile: s.profile }),
     },
   };
 }
@@ -98,7 +104,7 @@ export default function EquipmentScreen() {
     }
     Alert.alert(
       'Restore backup?',
-      'This replaces your current equipment, workout history, and rotation with the pasted backup.',
+      'This replaces your current equipment, workout history, rotation, and coach profile with the pasted backup.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -107,6 +113,7 @@ export default function EquipmentScreen() {
           onPress: () => {
             try {
               importBackup(text, liveStores());
+              useTodayPlan.getState().clear();
               setImportText('');
               Alert.alert('Backup restored');
             } catch (e) {
@@ -197,7 +204,7 @@ export default function EquipmentScreen() {
       {/* Backup */}
       <Text style={[Typography.label, { marginTop: 32, marginBottom: 6 }]}>Backup</Text>
       <Text style={[Typography.caption, { marginBottom: 12 }]}>
-        Your history lives only on this phone. Export to save a copy; import to restore it.
+        Your history and coach profile live only on this phone. Export to save a copy; import to restore it.
       </Text>
 
       <TouchableOpacity style={styles.backupBtn} onPress={handleExport} activeOpacity={0.7}>

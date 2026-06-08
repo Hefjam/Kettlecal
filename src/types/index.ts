@@ -35,11 +35,89 @@ export const DEFAULT_EQUIPMENT: UserEquipment = {
 
 export type Emphasis = 'strength' | 'skill' | 'conditioning';
 
+export type SessionLength = 'short' | 'standard' | 'long';
+
+export type RoutineMode = 'calisthenics_kb_support';
+
+export type MovementPattern =
+  | 'vertical_pull'
+  | 'horizontal_pull'
+  | 'horizontal_push'
+  | 'dip'
+  | 'vertical_push'
+  | 'core'
+  | 'squat'
+  | 'hinge'
+  | 'swing'
+  | 'clean'
+  | 'press'
+  | 'row'
+  | 'getup'
+  | 'snatch'
+  | 'full_body';
+
+export interface CoachProfile {
+  routineMode: RoutineMode;
+  sessionLength: SessionLength;
+  restrictedAutoPickExerciseIds: string[];
+  autoAdjust: {
+    enabled: boolean;
+    painDownrankThreshold: number;
+    painAvoidPatternThreshold: number;
+    rpeHoldThreshold: number;
+    recentSessionWindow: number;
+  };
+}
+
+export const DEFAULT_COACH_PROFILE: CoachProfile = {
+  routineMode: 'calisthenics_kb_support',
+  sessionLength: 'standard',
+  restrictedAutoPickExerciseIds: [
+    'kb-press',
+    'kb-double-press',
+    'kb-clean-press',
+    'kb-double-clean-press',
+  ],
+  autoAdjust: {
+    // Opt-in by default: the coach never silently routes around self-reported
+    // pain/RPE until the user turns this on in the Coach tab. Pain/RPE logging
+    // still works while off — it just informs Progress, not generation.
+    enabled: false,
+    painDownrankThreshold: 4,
+    painAvoidPatternThreshold: 6,
+    rpeHoldThreshold: 9,
+    recentSessionWindow: 3,
+  },
+};
+
+/**
+ * Fill a partial/unknown coach profile with defaults. The engine reads nested
+ * fields like `autoAdjust.enabled` unconditionally, so any imported backup or
+ * rehydrated-from-an-older-build profile must be merged over the defaults before
+ * it reaches generation — a missing `autoAdjust` would otherwise crash it.
+ */
+export function mergeCoachProfile(input: unknown): CoachProfile {
+  const p = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  const a = p.autoAdjust && typeof p.autoAdjust === 'object' ? (p.autoAdjust as object) : {};
+  return {
+    ...DEFAULT_COACH_PROFILE,
+    ...(p as Partial<CoachProfile>),
+    autoAdjust: { ...DEFAULT_COACH_PROFILE.autoAdjust, ...(a as Partial<CoachProfile['autoAdjust']>) },
+  };
+}
+
+export interface ExerciseFeedback {
+  pain?: number; // 0-10
+  rpe?: number; // 1-10
+  notes?: string;
+}
+
 export interface Exercise {
   id: string;
   name: string;
   category: 'calisthenics' | 'kettlebell';
   muscleGroups: string[];
+  movementPatterns: MovementPattern[];
   type: 'reps' | 'time' | 'emom';
   equipment: EquipmentItem[];
   defaultRestSeconds: number;
@@ -85,6 +163,7 @@ export interface Set {
 export interface ExerciseLog {
   exerciseId: string;
   sets: Set[];
+  feedback?: ExerciseFeedback;
 }
 
 export interface WorkoutSession {

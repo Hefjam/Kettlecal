@@ -1,4 +1,11 @@
-import { Exercise, ExerciseLog, ExerciseTarget, UserEquipment } from '../types';
+import {
+  CoachProfile,
+  DEFAULT_COACH_PROFILE,
+  Exercise,
+  ExerciseLog,
+  ExerciseTarget,
+  UserEquipment,
+} from '../types';
 import { PROGRESSION } from './progressionConfig';
 import { ownedKbWeightsFor } from '../data/availability';
 import { nextRung } from '../data/ladders';
@@ -86,18 +93,15 @@ export function buildTarget(
   lastLog: ExerciseLog | undefined,
   equipment: UserEquipment,
   allExercises: Exercise[],
-  // Recent completed logs for this exercise, NEWEST-FIRST, used only by the v2
-  // auto-deload rule to detect a sustained stall. Optional + defaulted so the
-  // 4-arg callers in generateWorkout.ts compile unchanged; wiring the engine to
-  // actually pass recent history is a separate (out-of-scope) task — until then
-  // this defaults to [] and no deload ever fires through generateWorkout.
-  recentLogs: ExerciseLog[] = []
+  // Recent completed logs for this exercise, NEWEST-FIRST, used by auto-deload.
+  recentLogs: ExerciseLog[] = [],
+  coachProfile: CoachProfile = DEFAULT_COACH_PROFILE
 ): ExerciseTarget {
-  if (exercise.type === 'emom') return buildEmomTarget(exercise, lastLog);
-  if (exercise.type === 'time') return buildTimeTarget(exercise, lastLog);
+  if (exercise.type === 'emom') return buildEmomTarget(exercise, lastLog, coachProfile);
+  if (exercise.type === 'time') return buildTimeTarget(exercise, lastLog, coachProfile);
   if (exercise.category === 'kettlebell')
-    return buildKbTarget(exercise, lastLog, equipment, allExercises, recentLogs);
-  return buildBodyweightTarget(exercise, lastLog, equipment, allExercises, recentLogs);
+    return buildKbTarget(exercise, lastLog, equipment, allExercises, recentLogs, coachProfile);
+  return buildBodyweightTarget(exercise, lastLog, equipment, allExercises, recentLogs, coachProfile);
 }
 
 function buildKbTarget(
@@ -105,7 +109,8 @@ function buildKbTarget(
   lastLog: ExerciseLog | undefined,
   equipment: UserEquipment,
   allExercises: Exercise[],
-  recentLogs: ExerciseLog[] = []
+  recentLogs: ExerciseLog[] = [],
+  coachProfile: CoachProfile = DEFAULT_COACH_PROFILE
 ): ExerciseTarget {
   const cfg = PROGRESSION.kb;
   const dl = PROGRESSION.deload;
@@ -124,6 +129,18 @@ function buildKbTarget(
 
   const cur = currentWeight(lastLog, owned);
   const reps = repsAtWeight(lastLog, cur);
+
+  if (shouldHoldForHighEffort(lastLog, coachProfile)) {
+    const best = reps.length ? Math.max(...reps) : cfg.repMin;
+    const hold = Math.max(cfg.repMin, best);
+    return {
+      exerciseId: exercise.id,
+      sets: cfg.sets,
+      targetReps: hold,
+      weightKg: cur,
+      reason: `Hold: high effort last time — repeat ${hold} reps at ${cur}kg`,
+    };
+  }
 
   // Auto-deload (v2): a sustained stall at the current weight earns a back-off,
   // checked BEFORE normal progression. Step down to the next lighter owned KB
@@ -192,7 +209,8 @@ function buildBodyweightTarget(
   lastLog: ExerciseLog | undefined,
   equipment: UserEquipment,
   allExercises: Exercise[],
-  recentLogs: ExerciseLog[] = []
+  recentLogs: ExerciseLog[] = [],
+  coachProfile: CoachProfile = DEFAULT_COACH_PROFILE
 ): ExerciseTarget {
   const cfg = PROGRESSION.bodyweight;
   const dl = PROGRESSION.deload;
@@ -207,6 +225,17 @@ function buildBodyweightTarget(
   }
 
   const reps = lastLog.sets.map((s) => s.reps ?? 0);
+
+  if (shouldHoldForHighEffort(lastLog, coachProfile)) {
+    const best = reps.length ? Math.max(...reps) : cfg.repMin;
+    const hold = Math.max(cfg.repMin, best);
+    return {
+      exerciseId: exercise.id,
+      sets: cfg.sets,
+      targetReps: hold,
+      reason: `Hold: high effort last time — repeat ${hold} reps`,
+    };
+  }
 
   // Auto-deload (v2): a sustained stall (best set below repMin) drops the rep
   // target. No weight to shed, so back off reps directly. Checked before the
@@ -242,11 +271,24 @@ function buildBodyweightTarget(
   };
 }
 
-function buildTimeTarget(exercise: Exercise, lastLog: ExerciseLog | undefined): ExerciseTarget {
+function buildTimeTarget(
+  exercise: Exercise,
+  lastLog: ExerciseLog | undefined,
+  coachProfile: CoachProfile = DEFAULT_COACH_PROFILE
+): ExerciseTarget {
   const cfg = PROGRESSION.time;
   const best = lastLog
     ? Math.max(0, ...lastLog.sets.map((s) => s.duration ?? 0))
     : 0;
+  if (lastLog && shouldHoldForHighEffort(lastLog, coachProfile)) {
+    const hold = best > 0 ? best : cfg.secMin;
+    return {
+      exerciseId: exercise.id,
+      sets: cfg.sets,
+      targetSeconds: hold,
+      reason: `Hold: high effort last time — repeat ${hold}s`,
+    };
+  }
   const next = best > 0 ? best + cfg.increment : cfg.secMin;
   return {
     exerciseId: exercise.id,
@@ -263,7 +305,11 @@ function buildTimeTarget(exercise: Exercise, lastLog: ExerciseLog | undefined): 
  * Double-progression: bump reps/min up to `repMax`, then add a minute and reset
  * reps/min to baseline. A faded minute holds at the sustained floor instead.
  */
-function buildEmomTarget(exercise: Exercise, lastLog: ExerciseLog | undefined): ExerciseTarget {
+function buildEmomTarget(
+  exercise: Exercise,
+  lastLog: ExerciseLog | undefined,
+  coachProfile: CoachProfile = DEFAULT_COACH_PROFILE
+): ExerciseTarget {
   const cfg = PROGRESSION.emom;
   const emit = (reps: number, mins: number, reason: string): ExerciseTarget => ({
     exerciseId: exercise.id,
@@ -282,6 +328,10 @@ function buildEmomTarget(exercise: Exercise, lastLog: ExerciseLog | undefined): 
   const weakest = Math.min(...perMinute);
   const strongest = Math.max(...perMinute);
   const sustained = weakest === strongest; // held the same reps every minute
+
+  if (lastLog && shouldHoldForHighEffort(lastLog, coachProfile)) {
+    return emit(weakest, minutesDone, `Hold: high effort last time — ${weakest} reps/min`);
+  }
 
   if (!sustained) {
     // Faded: settle back to the floor you actually held all the way through.
@@ -311,4 +361,13 @@ function promote(
 ): ExerciseTarget {
   const base = buildTarget(rung, undefined, equipment, allExercises);
   return { ...base, reason: `Leveled up: ${from.name} → ${rung.name}` };
+}
+
+function shouldHoldForHighEffort(
+  lastLog: ExerciseLog,
+  coachProfile: CoachProfile
+): boolean {
+  if (!coachProfile.autoAdjust.enabled) return false;
+  const rpe = lastLog.feedback?.rpe;
+  return rpe != null && rpe >= coachProfile.autoAdjust.rpeHoldThreshold;
 }

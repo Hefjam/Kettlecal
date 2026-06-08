@@ -4,6 +4,25 @@ import { Colors } from '../../src/theme/colors';
 import { Typography } from '../../src/theme/typography';
 import { useWorkoutHistory } from '../../src/stores/useWorkoutHistory';
 import { EXERCISES } from '../../src/data/exercises';
+import { MovementPattern, WorkoutSession } from '../../src/types';
+
+const PATTERN_LABELS: Record<MovementPattern, string> = {
+  vertical_pull: 'Vertical pull',
+  horizontal_pull: 'Horizontal pull',
+  horizontal_push: 'Horizontal push',
+  dip: 'Dips',
+  vertical_push: 'Vertical push',
+  core: 'Core',
+  squat: 'Squat',
+  hinge: 'Hinge',
+  swing: 'Swing',
+  clean: 'Clean',
+  press: 'Press',
+  row: 'Rows',
+  getup: 'Get-up',
+  snatch: 'Snatch',
+  full_body: 'Full body',
+};
 
 export default function ProgressScreen() {
   const { sessions, getPersonalRecords, getWeeklyVolume } = useWorkoutHistory();
@@ -11,6 +30,8 @@ export default function ProgressScreen() {
   const volume = getWeeklyVolume();
   const maxVolume = Math.max(...volume.map((v) => v.totalWeightKg), 1);
   const streak = computeStreak(sessions.map((s) => s.date));
+  const patternBalance = computePatternBalance(sessions);
+  const recentPain = recentPainFlags(sessions);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
@@ -53,6 +74,47 @@ export default function ProgressScreen() {
         )}
       </View>
 
+      <Text style={[Typography.label, { marginBottom: 12 }]}>Movement Balance (7 days)</Text>
+      <View style={styles.patternCard}>
+        {patternBalance.length === 0 ? (
+          <Text style={[Typography.caption, { color: Colors.text.secondary }]}>
+            Movement balance appears after logged sets.
+          </Text>
+        ) : (
+          patternBalance.map((item) => (
+            <View key={item.pattern} style={styles.patternRow}>
+              <Text style={[Typography.caption, { flex: 1 }]}>
+                {PATTERN_LABELS[item.pattern]}
+              </Text>
+              <View style={styles.patternTrack}>
+                <View style={[styles.patternBar, { width: `${item.widthPct}%` as any }]} />
+              </View>
+              <Text style={[Typography.mono, styles.patternCount]}>{item.sets}</Text>
+            </View>
+          ))
+        )}
+      </View>
+
+      <Text style={[Typography.label, { marginTop: 24, marginBottom: 12 }]}>Recent Pain Flags</Text>
+      {recentPain.length === 0 ? (
+        <Text style={[Typography.caption, { color: Colors.text.muted }]}>
+          Pain you log (4+) shows here. Turn on Auto-Adjust in Coach to have it shape your plan.
+        </Text>
+      ) : (
+        recentPain.map((flag) => (
+          <View key={`${flag.sessionId}-${flag.exerciseId}`} style={styles.painRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={Typography.body}>{flag.exerciseName}</Text>
+              <Text style={[Typography.caption, { marginTop: 2 }]}>
+                {flag.date}
+                {flag.rpe != null ? ` · RPE ${flag.rpe}` : ''}
+              </Text>
+            </View>
+            <Text style={styles.painChip}>Pain {flag.pain}</Text>
+          </View>
+        ))
+      )}
+
       {/* PRs */}
       <Text style={[Typography.label, { marginTop: 24, marginBottom: 12 }]}>Personal Records</Text>
       {Object.keys(prs).length === 0 ? (
@@ -79,6 +141,57 @@ export default function ProgressScreen() {
       )}
     </ScrollView>
   );
+}
+
+function computePatternBalance(sessions: WorkoutSession[]) {
+  const cutoff = Date.now() - 7 * 86400000;
+  const counts = new Map<MovementPattern, number>();
+  for (const session of sessions) {
+    if (new Date(session.date).getTime() < cutoff) continue;
+    for (const log of session.exerciseLogs) {
+      const setCount = log.sets.length;
+      if (setCount === 0) continue;
+      const exercise = EXERCISES.find((e) => e.id === log.exerciseId);
+      for (const pattern of exercise?.movementPatterns ?? []) {
+        counts.set(pattern, (counts.get(pattern) ?? 0) + setCount);
+      }
+    }
+  }
+  const max = Math.max(...counts.values(), 1);
+  return Array.from(counts.entries())
+    .map(([pattern, sets]) => ({ pattern, sets, widthPct: Math.max(8, (sets / max) * 100) }))
+    .sort((a, b) => b.sets - a.sets)
+    .slice(0, 6);
+}
+
+function recentPainFlags(sessions: WorkoutSession[]) {
+  const flags: {
+    sessionId: string;
+    exerciseId: string;
+    exerciseName: string;
+    date: string;
+    pain: number;
+    rpe?: number;
+  }[] = [];
+  for (const session of sessions.slice(0, 6)) {
+    for (const log of session.exerciseLogs) {
+      const pain = log.feedback?.pain;
+      if (pain == null || pain < 4) continue;
+      const exercise = EXERCISES.find((e) => e.id === log.exerciseId);
+      flags.push({
+        sessionId: session.id,
+        exerciseId: log.exerciseId,
+        exerciseName: exercise?.name ?? log.exerciseId,
+        date: new Date(session.date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+        pain,
+        rpe: log.feedback?.rpe,
+      });
+    }
+  }
+  return flags.slice(0, 5);
 }
 
 function computeStreak(dates: string[]): number {
@@ -115,6 +228,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     height: 160,
+    marginBottom: 24,
   },
   bars: {
     flex: 1,
@@ -160,5 +274,51 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     fontSize: 12,
     fontWeight: '700',
+  },
+  patternCard: {
+    backgroundColor: Colors.bg.card,
+    borderRadius: 16,
+    padding: 16,
+  },
+  patternRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  patternTrack: {
+    flex: 1,
+    height: 8,
+    backgroundColor: Colors.bg.elevated,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  patternBar: {
+    height: 8,
+    backgroundColor: Colors.accent.primary,
+    borderRadius: 4,
+  },
+  patternCount: {
+    width: 28,
+    textAlign: 'right',
+    color: Colors.text.secondary,
+    fontSize: 12,
+  },
+  painRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.bg.card,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+  },
+  painChip: {
+    backgroundColor: Colors.status.warning,
+    color: Colors.bg.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

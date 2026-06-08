@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { WorkoutSession, ExerciseLog, Set, ExerciseTarget, Emphasis } from '../types';
+import {
+  WorkoutSession,
+  ExerciseLog,
+  Set,
+  ExerciseTarget,
+  Emphasis,
+  ExerciseFeedback,
+} from '../types';
 import { EXERCISES } from '../data/exercises';
 import { useRotation } from './useRotation';
 import { useTodayPlan } from './useTodayPlan';
@@ -24,6 +31,7 @@ interface ActiveSessionState {
 
   startWorkout: (exercises: SessionExercise[], planEmphasis?: Emphasis | null) => void;
   addSet: (exerciseId: string, newSet: Omit<Set, 'completedAt'>) => void;
+  setExerciseFeedback: (exerciseId: string, feedback: ExerciseFeedback) => void;
   nextExercise: () => void;
   prevExercise: () => void;
   setCurrentExercise: (index: number) => void;
@@ -73,6 +81,19 @@ export const useActiveSession = create<ActiveSessionState>()((set, get) => ({
         session: { ...s.session, exerciseLogs: updatedLogs },
         isRestTimerActive: true,
         restSeconds: exercise?.defaultRestSeconds ?? 60,
+      };
+    }),
+
+  setExerciseFeedback: (exerciseId, feedback) =>
+    set((s) => {
+      if (!s.session) return s;
+      return {
+        session: {
+          ...s.session,
+          exerciseLogs: s.session.exerciseLogs.map((log) =>
+            log.exerciseId === exerciseId ? { ...log, feedback } : log
+          ),
+        },
       };
     }),
 

@@ -34,5 +34,5 @@ export const PROGRESSION = {
   deload: { stallSessions: 3, repDrop: 2 },
   // Session shape.
   minExercisesPerSession: 4,
-  maxExercisesPerSession: 5,
+  maxExercisesPerSession: 6,
 } as const;

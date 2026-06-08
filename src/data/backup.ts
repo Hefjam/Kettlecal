@@ -1,17 +1,24 @@
-import { UserEquipment, WorkoutSession, Emphasis } from '../types';
+import {
+  CoachProfile,
+  DEFAULT_COACH_PROFILE,
+  mergeCoachProfile,
+  UserEquipment,
+  WorkoutSession,
+  Emphasis,
+} from '../types';
 
 /**
- * JSON export/import backup for the three persisted stores. MMKV is the ONLY
+ * JSON export/import backup for the persisted stores. MMKV is the ONLY
  * copy of training history, so this is the safety net: serialize the live
  * stores to a versioned blob the user can save off-device, and rehydrate them
  * back — validating shape + version, never partially applying.
  *
- * `today-plan` is intentionally NOT backed up: it regenerates from history +
- * rotation, so persisting it would only risk staleness.
+ * `today-plan` is intentionally NOT backed up: it regenerates from history,
+ * rotation, equipment, and coach profile, so persisting it would risk staleness.
  */
 
 export const BACKUP_FORMAT = 'kettlecal-backup';
-export const BACKUP_SCHEMA_VERSION = 1;
+export const BACKUP_SCHEMA_VERSION = 2;
 
 /** Persisted data of each backed-up store (the data fields only — no actions). */
 export interface EquipmentSlice {
@@ -24,6 +31,9 @@ export interface RotationSlice {
   lastEmphasis: Emphasis | null;
   sessionCount: number;
 }
+export interface CoachProfileSlice {
+  profile: CoachProfile;
+}
 
 /**
  * Read/write access to one store's persisted data. Injected so backup logic is
@@ -35,11 +45,12 @@ export interface StoreSlice<T> {
   set: (next: T) => void;
 }
 
-/** The three stores we back up, keyed by their MMKV persist name. */
+/** The stores we back up, keyed by their MMKV persist name. */
 export interface StoreRegistry {
   equipment: StoreSlice<EquipmentSlice>;
   'workout-history': StoreSlice<HistorySlice>;
   rotation: StoreSlice<RotationSlice>;
+  'coach-profile': StoreSlice<CoachProfileSlice>;
 }
 
 export interface Backup {
@@ -50,6 +61,7 @@ export interface Backup {
     equipment: EquipmentSlice;
     'workout-history': HistorySlice;
     rotation: RotationSlice;
+    'coach-profile': CoachProfileSlice;
   };
 }
 
@@ -63,6 +75,7 @@ export function exportBackup(registry: StoreRegistry): Backup {
       equipment: registry.equipment.get(),
       'workout-history': registry['workout-history'].get(),
       rotation: registry.rotation.get(),
+      'coach-profile': registry['coach-profile'].get(),
     },
   };
 }
@@ -77,6 +90,7 @@ export function importBackup(input: unknown, registry: StoreRegistry): void {
   registry.equipment.set(backup.stores.equipment);
   registry['workout-history'].set(backup.stores['workout-history']);
   registry.rotation.set(backup.stores.rotation);
+  registry['coach-profile'].set(backup.stores['coach-profile']);
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -97,7 +111,7 @@ function parseBackup(input: unknown): Backup {
     throw new Error('This is not a Kettlecal backup file.');
   }
 
-  if (obj.schemaVersion !== BACKUP_SCHEMA_VERSION) {
+  if (obj.schemaVersion !== 1 && obj.schemaVersion !== BACKUP_SCHEMA_VERSION) {
     throw new Error(
       `Unsupported backup version (got ${String(obj.schemaVersion)}, expected ${BACKUP_SCHEMA_VERSION}).`
     );
@@ -116,6 +130,30 @@ function parseBackup(input: unknown): Backup {
   if (!isRecord(stores.rotation) || typeof stores.rotation.sessionCount !== 'number') {
     throw new Error('Backup is corrupt: missing rotation data.');
   }
+  if (obj.schemaVersion === BACKUP_SCHEMA_VERSION) {
+    if (!isRecord(stores['coach-profile']) || !isRecord(stores['coach-profile'].profile)) {
+      throw new Error('Backup is corrupt: missing coach profile.');
+    }
+    const parsed = obj as unknown as Backup;
+    // Fill any missing profile fields with defaults so a partial/older-shape
+    // profile can't crash the engine after import.
+    return {
+      ...parsed,
+      stores: {
+        ...parsed.stores,
+        'coach-profile': { profile: mergeCoachProfile(stores['coach-profile'].profile) },
+      },
+    };
+  }
 
-  return obj as unknown as Backup;
+  return {
+    ...(obj as unknown as Omit<Backup, 'stores'>),
+    schemaVersion: BACKUP_SCHEMA_VERSION,
+    stores: {
+      equipment: stores.equipment as unknown as EquipmentSlice,
+      'workout-history': stores['workout-history'] as unknown as HistorySlice,
+      rotation: stores.rotation as unknown as RotationSlice,
+      'coach-profile': { profile: DEFAULT_COACH_PROFILE },
+    },
+  };
 }

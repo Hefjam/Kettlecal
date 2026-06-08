@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { exportBackup, importBackup, BACKUP_SCHEMA_VERSION, StoreRegistry } from './backup';
 import { findLastLogFor } from '../engine/history';
-import { UserEquipment, WorkoutSession } from '../types';
+import { DEFAULT_COACH_PROFILE, UserEquipment, WorkoutSession, CoachProfile } from '../types';
 
 /**
- * In-memory fake of the three persisted zustand stores, so these tests never
+ * In-memory fake of the persisted zustand stores, so these tests never
  * touch react-native-mmkv. Each slice mirrors the real store's persisted data
  * fields (no actions).
  */
@@ -12,14 +12,17 @@ function makeRegistry(initial?: {
   equipment?: { equipment: UserEquipment };
   history?: { sessions: WorkoutSession[] };
   rotation?: { lastEmphasis: 'strength' | 'skill' | 'conditioning' | null; sessionCount: number };
+  coachProfile?: { profile: CoachProfile };
 }): StoreRegistry {
   let equipment = initial?.equipment ?? { equipment: { items: [], kettlebells: [] } };
   let history = initial?.history ?? { sessions: [] };
   let rotation = initial?.rotation ?? { lastEmphasis: null, sessionCount: 0 };
+  let coachProfile = initial?.coachProfile ?? { profile: DEFAULT_COACH_PROFILE };
   return {
     equipment: { get: () => equipment, set: (s) => (equipment = s) },
     'workout-history': { get: () => history, set: (s) => (history = s) },
     rotation: { get: () => rotation, set: (s) => (rotation = s) },
+    'coach-profile': { get: () => coachProfile, set: (s) => (coachProfile = s) },
   };
 }
 
@@ -40,6 +43,13 @@ describe('backup round-trip', () => {
       equipment: { equipment: { items: ['pull-up-bar'], kettlebells: [{ weightKg: 24, quantity: 2 }] } },
       history: { sessions: [sampleSession] },
       rotation: { lastEmphasis: 'strength', sessionCount: 7 },
+      coachProfile: {
+        profile: {
+          ...DEFAULT_COACH_PROFILE,
+          sessionLength: 'long',
+          restrictedAutoPickExerciseIds: ['kb-press'],
+        },
+      },
     });
 
     const json = exportBackup(source);
@@ -50,6 +60,7 @@ describe('backup round-trip', () => {
     expect(target.equipment.get()).toEqual(source.equipment.get());
     expect(target['workout-history'].get()).toEqual(source['workout-history'].get());
     expect(target.rotation.get()).toEqual(source.rotation.get());
+    expect(target['coach-profile'].get()).toEqual(source['coach-profile'].get());
   });
 
   it('import accepts a JSON string (what the UI pastes)', () => {
@@ -64,6 +75,33 @@ describe('backup round-trip', () => {
 
     expect(target['workout-history'].get()).toEqual(source['workout-history'].get());
     expect(target.rotation.get()).toEqual(source.rotation.get());
+  });
+
+  it('imports a v1 backup by defaulting the new coach profile slice', () => {
+    const source = makeRegistry({
+      history: { sessions: [sampleSession] },
+      rotation: { lastEmphasis: 'conditioning', sessionCount: 6 },
+    });
+    const backup = exportBackup(source);
+    const v1Backup = {
+      ...backup,
+      schemaVersion: 1,
+      stores: {
+        equipment: backup.stores.equipment,
+        'workout-history': backup.stores['workout-history'],
+        rotation: backup.stores.rotation,
+      },
+    };
+    const target = makeRegistry({
+      coachProfile: {
+        profile: { ...DEFAULT_COACH_PROFILE, sessionLength: 'long' },
+      },
+    });
+
+    importBackup(v1Backup, target);
+
+    expect(target.rotation.get()).toEqual(source.rotation.get());
+    expect(target['coach-profile'].get()).toEqual({ profile: DEFAULT_COACH_PROFILE });
   });
 });
 
@@ -107,6 +145,24 @@ describe('backup validation', () => {
     // equipment must NOT have been written despite being present and first
     expect(target.equipment.get()).toEqual({ equipment: { items: [], kettlebells: [] } });
     expect(target.rotation.get()).toEqual({ lastEmphasis: null, sessionCount: 0 });
+  });
+
+  it('fills a partial coach profile with defaults on import (never crashes the engine)', () => {
+    const backup = exportBackup(makeRegistry());
+    // A hand-edited / older-shape v2 profile missing the autoAdjust block.
+    const partial = {
+      ...backup,
+      stores: {
+        ...backup.stores,
+        'coach-profile': { profile: { sessionLength: 'long' } as unknown as CoachProfile },
+      },
+    };
+    const target = makeRegistry();
+    importBackup(partial, target);
+    const imported = target['coach-profile'].get().profile;
+    expect(imported.autoAdjust).toEqual(DEFAULT_COACH_PROFILE.autoAdjust);
+    expect(imported.routineMode).toBe(DEFAULT_COACH_PROFILE.routineMode);
+    expect(imported.sessionLength).toBe('long');
   });
 
   it('exports and imports an empty/cold state cleanly', () => {

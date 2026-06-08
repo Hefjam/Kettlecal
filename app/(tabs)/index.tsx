@@ -9,6 +9,7 @@ import { useWorkoutHistory } from '../../src/stores/useWorkoutHistory';
 import { useRotation } from '../../src/stores/useRotation';
 import { useTodayPlan } from '../../src/stores/useTodayPlan';
 import { useActiveSession } from '../../src/stores/useActiveSession';
+import { useCoachProfile } from '../../src/stores/useCoachProfile';
 import { generateWorkout, nextSwapTarget } from '../../src/engine/generateWorkout';
 import { dayKey } from '../../src/utils/dayKey';
 import { ExerciseTarget } from '../../src/types';
@@ -31,6 +32,7 @@ export default function TodayScreen() {
   const sessions = useWorkoutHistory((s) => s.sessions);
   const lastEmphasis = useRotation((s) => s.lastEmphasis);
   const sessionCount = useRotation((s) => s.sessionCount);
+  const coachProfile = useCoachProfile((s) => s.profile);
   const plan = useTodayPlan((s) => s.plan);
   const setPlan = useTodayPlan((s) => s.setPlan);
   const swapTarget = useTodayPlan((s) => s.swapTarget);
@@ -40,7 +42,7 @@ export default function TodayScreen() {
   // Generate once per local day (or after a completed session clears the plan).
   useEffect(() => {
     if (!plan || plan.date !== dayKey()) {
-      setPlan(generateWorkout(sessions, { lastEmphasis, sessionCount }, equipment));
+      setPlan(generateWorkout(sessions, { lastEmphasis, sessionCount }, equipment, coachProfile));
     }
     // Intentionally keyed on `plan` only: regenerate on day-turnover / post-completion,
     // not when equipment or history shift mid-day (that would wipe swaps).
@@ -64,7 +66,7 @@ export default function TodayScreen() {
 
   const handleSwap = (index: number) => {
     if (!plan) return;
-    swapTarget(index, nextSwapTarget(plan, index, sessions, equipment));
+    swapTarget(index, nextSwapTarget(plan, index, sessions, equipment, coachProfile));
   };
 
   return (
@@ -107,6 +109,16 @@ export default function TodayScreen() {
             </View>
           );
         })}
+
+        {plan && plan.targets.length === 0 && (
+          <View style={styles.emptyCard}>
+            <Text style={Typography.body}>No exercises available today</Text>
+            <Text style={[Typography.caption, { marginTop: 6, color: Colors.text.secondary }]}>
+              The coach found nothing to program with your current setup. Add gear in the Kit tab, or
+              loosen your Coach restrictions, then come back.
+            </Text>
+          </View>
+        )}
 
         <Link href="/freestyle" asChild>
           <TouchableOpacity style={styles.freestyleLink}>
@@ -160,6 +172,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
+  },
+  emptyCard: {
+    backgroundColor: Colors.bg.card,
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 8,
   },
   cardTop: {
     flexDirection: 'row',

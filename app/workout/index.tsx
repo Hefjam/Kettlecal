@@ -28,6 +28,7 @@ export default function WorkoutScreen() {
     nextExercise,
     prevExercise,
     addSet,
+    setExerciseFeedback,
     stopRestTimer,
     completeWorkout,
     abandonWorkout,
@@ -134,6 +135,7 @@ export default function WorkoutScreen() {
           isRestActive={isRestTimerActive}
           restSeconds={restSeconds}
           onAddSet={handleAddSet}
+          onFeedbackChange={(feedback) => setExerciseFeedback(currentExercise.id, feedback)}
           onRestComplete={stopRestTimer}
           onRestSkip={stopRestTimer}
           onEmomPress={() => setEmomVisible(true)}
