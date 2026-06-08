@@ -1,6 +1,14 @@
 import { create } from 'zustand';
-import { WorkoutSession, ExerciseLog, Set } from '../types';
+import { WorkoutSession, ExerciseLog, Set, ExerciseTarget, Emphasis } from '../types';
 import { EXERCISES } from '../data/exercises';
+import { useRotation } from './useRotation';
+import { useTodayPlan } from './useTodayPlan';
+
+/** One exercise to start, optionally carrying the coach's prescribed target. */
+export interface SessionExercise {
+  exerciseId: string;
+  target?: ExerciseTarget;
+}
 
 interface ActiveSessionState {
   session: WorkoutSession | null;
@@ -9,8 +17,12 @@ interface ActiveSessionState {
   restSeconds: number;
   isEmomActive: boolean;
   emomDurationMinutes: number;
+  /** Coach targets for this session, keyed by exerciseId (empty for freestyle). */
+  targets: Record<string, ExerciseTarget>;
+  /** Set when started from today's plan; drives rotation advance on completion. */
+  planEmphasis: Emphasis | null;
 
-  startWorkout: (exerciseIds: string[]) => void;
+  startWorkout: (exercises: SessionExercise[], planEmphasis?: Emphasis | null) => void;
   addSet: (exerciseId: string, newSet: Omit<Set, 'completedAt'>) => void;
   nextExercise: () => void;
   prevExercise: () => void;
@@ -30,17 +42,21 @@ export const useActiveSession = create<ActiveSessionState>()((set, get) => ({
   restSeconds: 60,
   isEmomActive: false,
   emomDurationMinutes: 10,
+  targets: {},
+  planEmphasis: null,
 
-  startWorkout: (exerciseIds) => {
+  startWorkout: (exercises, planEmphasis = null) => {
     const now = new Date().toISOString();
+    const targets: Record<string, ExerciseTarget> = {};
+    for (const e of exercises) if (e.target) targets[e.exerciseId] = e.target;
     const session: WorkoutSession = {
       id: `session-${Date.now()}`,
       date: now,
       startedAt: now,
-      exerciseLogs: exerciseIds.map((id) => ({ exerciseId: id, sets: [] })),
+      exerciseLogs: exercises.map((e) => ({ exerciseId: e.exerciseId, sets: [] })),
       isCompleted: false,
     };
-    set({ session, currentExerciseIndex: 0 });
+    set({ session, currentExerciseIndex: 0, targets, planEmphasis });
   },
 
   addSet: (exerciseId, newSet) =>
@@ -90,7 +106,7 @@ export const useActiveSession = create<ActiveSessionState>()((set, get) => ({
   stopEmom: () => set({ isEmomActive: false }),
 
   completeWorkout: () => {
-    const { session } = get();
+    const { session, planEmphasis } = get();
     if (!session) return null;
     const now = new Date().toISOString();
     const completed: WorkoutSession = {
@@ -99,10 +115,30 @@ export const useActiveSession = create<ActiveSessionState>()((set, get) => ({
       durationMs: Date.now() - new Date(session.startedAt).getTime(),
       isCompleted: true,
     };
-    set({ session: null, currentExerciseIndex: 0, isRestTimerActive: false, isEmomActive: false });
+    // Advance rotation + clear today's plan only for a COACHED session (one
+    // started from today's plan). Freestyle sessions don't move the cycle.
+    if (planEmphasis) {
+      useRotation.getState().advance(planEmphasis);
+      useTodayPlan.getState().clear();
+    }
+    set({
+      session: null,
+      currentExerciseIndex: 0,
+      isRestTimerActive: false,
+      isEmomActive: false,
+      targets: {},
+      planEmphasis: null,
+    });
     return completed;
   },
 
   abandonWorkout: () =>
-    set({ session: null, currentExerciseIndex: 0, isRestTimerActive: false, isEmomActive: false }),
+    set({
+      session: null,
+      currentExerciseIndex: 0,
+      isRestTimerActive: false,
+      isEmomActive: false,
+      targets: {},
+      planEmphasis: null,
+    }),
 }));

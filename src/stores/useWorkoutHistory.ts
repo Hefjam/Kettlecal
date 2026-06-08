@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { WorkoutSession, PersonalRecord } from '../types';
+import { WorkoutSession, PersonalRecord, ExerciseLog } from '../types';
 import { mmkvStorage } from './mmkvStorage';
+import { findLastLogFor } from '../engine/history';
 
 interface WorkoutHistoryState {
   sessions: WorkoutSession[];
@@ -10,6 +11,8 @@ interface WorkoutHistoryState {
   getPersonalRecords: () => Record<string, PersonalRecord>;
   getRecentSessions: (limit?: number) => WorkoutSession[];
   getWeeklyVolume: () => { date: string; totalReps: number; totalWeightKg: number }[];
+  /** Most recent completed log for an exercise (what to beat) — drives the coach. */
+  getLastLogFor: (exerciseId: string) => ExerciseLog | undefined;
 }
 
 export const useWorkoutHistory = create<WorkoutHistoryState>()(
@@ -57,6 +60,8 @@ export const useWorkoutHistory = create<WorkoutHistoryState>()(
       },
 
       getRecentSessions: (limit = 10) => get().sessions.slice(0, limit),
+
+      getLastLogFor: (exerciseId) => findLastLogFor(get().sessions, exerciseId),
 
       getWeeklyVolume: () => {
         const byDate: Record<string, { totalReps: number; totalWeightKg: number }> = {};
