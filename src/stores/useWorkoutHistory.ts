@@ -35,8 +35,8 @@ export const useWorkoutHistory = create<WorkoutHistoryState>()(
         const prs: Record<string, PersonalRecord> = {};
         for (const session of get().sessions) {
           for (const log of session.exerciseLogs) {
-            const existing = prs[log.exerciseId];
             for (const set of log.sets) {
+              const existing = prs[log.exerciseId];
               const maxWeight = set.weight ?? 0;
               const maxReps = set.reps ?? 0;
               const maxDuration = set.duration ?? 0;
