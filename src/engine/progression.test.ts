@@ -113,3 +113,102 @@ describe('time progression', () => {
     expect(t.targetSeconds).toBe(25);
   });
 });
+
+describe('auto-deload (v2)', () => {
+  // A "stall session" = best working set at the current weight fell below repMin
+  // (5 for KB). `recentLogs` is the recent completed history, newest-first.
+  const TD = (id: string, recentLogs: ExerciseLog[], eq = full) =>
+    buildTarget(ex(id), recentLogs[0], eq, EXERCISES, recentLogs);
+
+  const stall = (id: string, weight: number) =>
+    log(id, [set(4, weight), set(4, weight), set(4, weight), set(4, weight), set(4, weight)]);
+  const ok = (id: string, weight: number) =>
+    log(id, [set(6, weight), set(6, weight), set(6, weight), set(6, weight), set(6, weight)]);
+
+  it('3 consecutive stalls at 24kg → deload to 20kg, reset to repMin', () => {
+    const t = TD('kb-press', [stall('kb-press', 24), stall('kb-press', 24), stall('kb-press', 24)]);
+    expect(t).toMatchObject({ exerciseId: 'kb-press', weightKg: 20, targetReps: 5 });
+    expect(t.reason).toMatch(/Deload/i);
+  });
+
+  it('only 2 stalls → no deload (falls through to hold/+1)', () => {
+    const t = TD('kb-press', [stall('kb-press', 24), stall('kb-press', 24)]);
+    expect(t.weightKg).toBe(24);
+    expect(t.reason).not.toMatch(/Deload/i);
+  });
+
+  it('a good session inside the window breaks the streak → no deload', () => {
+    const t = TD('kb-press', [stall('kb-press', 24), ok('kb-press', 24), stall('kb-press', 24)]);
+    expect(t.weightKg).toBe(24);
+    expect(t.reason).not.toMatch(/Deload/i);
+  });
+
+  it('stalls at a different weight do not count toward the current-weight streak', () => {
+    const t = TD('kb-press', [stall('kb-press', 24), stall('kb-press', 20), stall('kb-press', 24)]);
+    expect(t.reason).not.toMatch(/Deload/i);
+  });
+
+  it('3 stalls at the lightest KB (20kg) → drop reps by repDrop, no lighter KB', () => {
+    const t = TD('kb-press', [stall('kb-press', 20), stall('kb-press', 20), stall('kb-press', 20)]);
+    // repMin 5 − repDrop 2 = 3, weight stays at the floor.
+    expect(t).toMatchObject({ exerciseId: 'kb-press', weightKg: 20, targetReps: 3 });
+    expect(t.reason).toMatch(/Deload/i);
+  });
+
+  it('bodyweight: 3 stalls → drop reps by repDrop below repMin', () => {
+    const bwStall = log('push-up', [set(4), set(4), set(4), set(4)]);
+    const t = TD('push-up', [bwStall, bwStall, bwStall]);
+    // bodyweight repMin 6 − repDrop 2 = 4
+    expect(t).toMatchObject({ exerciseId: 'push-up', targetReps: 4 });
+    expect(t.reason).toMatch(/Deload/i);
+  });
+
+  it('default recentLogs ([]) → never deloads (backward-compatible 4-arg callers)', () => {
+    const t = T('kb-press', stall('kb-press', 24));
+    expect(t.reason).not.toMatch(/Deload/i);
+  });
+});
+
+describe('EMOM progression (v2)', () => {
+  // EMOM log = one set per worked minute, each carrying that minute's reps.
+  const minutes = (id: string, perMinute: number[]): ExerciseLog =>
+    log(id, perMinute.map((r) => set(r)));
+
+  it('cold start → baseline reps/min for baseline minutes', () => {
+    const t = T('kb-emom-swing', undefined);
+    expect(t).toMatchObject({ exerciseId: 'kb-emom-swing', targetReps: 10, emomMinutes: 10 });
+    expect(t.reason).toMatch(/EMOM/);
+  });
+
+  it('held every minute at baseline → advance reps/min by repStep', () => {
+    // 10 minutes, all 10 reps held → bump to 11 reps/min, minutes unchanged.
+    const t = T('kb-emom-swing', minutes('kb-emom-swing', Array(10).fill(10)));
+    expect(t).toMatchObject({ targetReps: 11, emomMinutes: 10 });
+    expect(t.reason).toMatch(/reps\/min/);
+  });
+
+  it('a minute dropped off → hold at the sustained floor (weakest minute)', () => {
+    // held 10 for nine minutes, faded to 8 on the last → did not sustain 10.
+    const t = T('kb-emom-swing', minutes('kb-emom-swing', [10, 10, 10, 10, 10, 10, 10, 10, 10, 8]));
+    expect(t.targetReps).toBe(8);
+    expect(t.emomMinutes).toBe(10);
+    expect(t.reason).toMatch(/Hold/i);
+  });
+
+  it('at the rep/min ceiling and sustained → add a minute, reset reps/min to baseline', () => {
+    // sustained 15 (repMax) for 10 min → graduate to 11 min at baseline reps.
+    const t = T('kb-emom-swing', minutes('kb-emom-swing', Array(10).fill(15)));
+    expect(t).toMatchObject({ targetReps: 10, emomMinutes: 11 });
+    expect(t.reason).toMatch(/min/);
+  });
+
+  it('reps/min never exceeds repMax', () => {
+    const t = T('kb-emom-swing', minutes('kb-emom-swing', Array(10).fill(14)));
+    expect(t.targetReps).toBeLessThanOrEqual(15);
+  });
+
+  it('minutes never exceed maxMinutes', () => {
+    const t = T('kb-emom-swing', minutes('kb-emom-swing', Array(20).fill(15)));
+    expect(t.emomMinutes).toBeLessThanOrEqual(20);
+  });
+});

@@ -2,23 +2,39 @@ import { Exercise, UserEquipment } from '../types';
 import { isAvailable } from './availability';
 
 /**
- * Minimal v1 progression ladders. Each chain is ordered easy → hard by exercise
- * id. When the user maxes the rep ceiling on a rung (and, for KB lifts, has no
- * heavier kettlebell to jump to), the coach promotes them to the next rung —
- * the "Leveled up" moment. Full ladder coverage is deferred to v2.
+ * Progression ladders. Each chain is ordered easy → hard by exercise id. When
+ * the user maxes the rep ceiling on a rung (and, for KB lifts, has no heavier
+ * kettlebell to jump to), the coach promotes them to the next rung — the
+ * "Leveled up" moment.
  *
- *   push-up → ring-push-up → dip → ring-dip   (bodyweight push)
- *   squat → pistol-squat                       (bodyweight legs)
- *   kb-press → kb-double-press                 (overhead)
+ * v1 shipped only the obvious chains; v2 extends coverage to the remaining
+ * sensible progressions in the catalog. A node lives in exactly one chain
+ * (`nextRung` takes the first match), so we only chain where there is a single
+ * unambiguous "next harder variation that the user already owns the gear for".
+ * Movements with no clearly-harder in-catalog successor (chin-up, pike-push-up,
+ * rows, get-up, snatch, rdl) are deliberately left standalone rather than
+ * inventing a progression — the engine falls back to volume creep for those.
+ *
+ *   push-up → ring-push-up → dip → ring-dip      (bodyweight push)
+ *   squat → pistol-squat                          (bodyweight legs)
+ *   pull-up → ring-pull-up → muscle-up            (vertical pull)   [v2]
+ *   hanging-knee-raise → toes-to-bar              (hanging core)    [v2]
+ *   hollow-body → l-sit                           (timed core)      [v2]
+ *   kb-press → kb-double-press                    (overhead)
  *   kb-goblet-squat → kb-front-squat → kb-double-front-squat
  *   kb-swing → kb-double-swing
+ *   kb-clean-press → kb-double-clean-press        (full-body)       [v2]
  */
 export const LADDERS: string[][] = [
   ['push-up', 'ring-push-up', 'dip', 'ring-dip'],
   ['squat', 'pistol-squat'],
+  ['pull-up', 'ring-pull-up', 'muscle-up'],
+  ['hanging-knee-raise', 'toes-to-bar'],
+  ['hollow-body', 'l-sit'],
   ['kb-press', 'kb-double-press'],
   ['kb-goblet-squat', 'kb-front-squat', 'kb-double-front-squat'],
   ['kb-swing', 'kb-double-swing'],
+  ['kb-clean-press', 'kb-double-clean-press'],
 ];
 
 /**
