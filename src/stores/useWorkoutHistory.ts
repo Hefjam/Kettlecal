@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { WorkoutSession, PersonalRecord, ExerciseLog } from '../types';
 import { mmkvStorage } from './mmkvStorage';
 import { findLastLogFor } from '../engine/history';
+import { dayKey } from '../utils/dayKey';
 
 interface WorkoutHistoryState {
   sessions: WorkoutSession[];
@@ -66,7 +67,7 @@ export const useWorkoutHistory = create<WorkoutHistoryState>()(
       getWeeklyVolume: () => {
         const byDate: Record<string, { totalReps: number; totalWeightKg: number }> = {};
         for (const session of get().sessions) {
-          const date = session.date.slice(0, 10);
+          const date = dayKey(new Date(session.date));
           if (!byDate[date]) byDate[date] = { totalReps: 0, totalWeightKg: 0 };
           for (const log of session.exerciseLogs) {
             for (const set of log.sets) {
