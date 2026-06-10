@@ -7,7 +7,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
@@ -38,7 +38,7 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
   // derived from wall-clock anchors rather than counting interval ticks.
   const anchorRef = useRef({ accumulatedMs: 0, startedAt: 0 });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const player = useAudioPlayer(require('../../assets/sounds/bell.wav'));
   const lastMinuteFiredRef = useRef(0);
 
   const bellScale = useSharedValue(1);
@@ -56,30 +56,13 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
       withTiming(1, { duration: 400 })
     );
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    if (soundRef.current) {
-      await soundRef.current.setPositionAsync(0);
-      await soundRef.current.playAsync();
+    try {
+      player.seekTo(0);
+      player.play();
+    } catch {
+      // Audio unavailable — haptics-only mode
     }
-  }, [bellScale]);
-
-  useEffect(() => {
-    let sound: Audio.Sound | null = null;
-    Audio.Sound.createAsync(
-      // Place a bell.wav in assets/sounds/. Falls back gracefully if missing.
-      require('../../assets/sounds/bell.wav'),
-      { shouldPlay: false, volume: 1.0 }
-    )
-      .then(({ sound: s }) => {
-        sound = s;
-        soundRef.current = s;
-      })
-      .catch(() => {
-        // Sound file not present — haptics-only mode
-      });
-    return () => {
-      sound?.unloadAsync();
-    };
-  }, []);
+  }, [bellScale, player]);
 
   useEffect(() => {
     if (!running) return;

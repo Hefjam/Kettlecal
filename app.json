@@ -32,12 +32,8 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-av",
-        {
-          "microphonePermission": false
-        }
-      ]
+      "expo-audio",
+      "expo-asset"
     ],
     "extra": {
       "router": {},

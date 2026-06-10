@@ -9,7 +9,8 @@
     "@expo/metro-runtime": "~56.0.14",
     "babel-preset-expo": "~56.0.0",
     "expo": "~56.0.9",
-    "expo-av": "^16.0.8",
+    "expo-asset": "~56.0.16",
+    "expo-audio": "~56.0.11",
     "expo-constants": "^56.0.17",
     "expo-haptics": "^56.0.3",
     "expo-linear-gradient": "~56.0.4",
@@ -46,9 +47,7 @@
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {
-        "exclude": [
-          "expo-av"
-        ],
+        "exclude": [],
         "listUnknownPackages": false
       }
     }
