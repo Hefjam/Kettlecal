@@ -9,7 +9,6 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Colors } from '../theme/colors';
-import { Typography } from '../theme/typography';
 
 interface RestTimerProps {
   seconds: number;
@@ -23,7 +22,7 @@ export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
   const bgOpacity = useSharedValue(0.1);
 
   const bgStyle = useAnimatedStyle(() => ({
-    backgroundColor: Colors.bg.card,
+    backgroundColor: Colors.bg.secondary,
     borderColor: `rgba(255, 94, 58, ${bgOpacity.value * 3.5})`,
     borderWidth: 1.5,
     shadowColor: Colors.accent.primary,
@@ -74,8 +73,8 @@ export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
 
   return (
     <Animated.View style={[styles.container, bgStyle]}>
-      <Text style={styles.restLabel}>REST TIMER</Text>
-      <Text style={[Typography.monoLarge, styles.timerVal]}>{display}</Text>
+      <Text style={styles.restLabel}>REST</Text>
+      <Text style={styles.timerVal}>{display}</Text>
       <TouchableOpacity
         style={styles.skipBtn}
         onPress={() => {
@@ -98,30 +97,31 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   restLabel: {
-    color: Colors.accent.primary,
+    fontFamily: 'Anton_400Regular',
+    color: Colors.text.secondary,
     fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    letterSpacing: 3,
   },
   timerVal: {
-    color: Colors.text.primary,
-    marginVertical: 8,
-    fontSize: 64,
+    fontFamily: 'VT323_400Regular',
+    color: Colors.accent.acid,
+    fontSize: 96,
+    marginVertical: 4,
   },
   skipBtn: {
     marginTop: 10,
     paddingHorizontal: 24,
     paddingVertical: 10,
-    backgroundColor: Colors.bg.elevated,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: Colors.border,
     minHeight: 44, // Touch target safety
     justifyContent: 'center',
   },
   skipBtnText: {
+    fontFamily: 'VT323_400Regular',
     color: Colors.text.secondary,
-    fontWeight: '700',
-    fontSize: 14,
+    fontSize: 20,
   },
 });

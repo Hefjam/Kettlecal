@@ -1,32 +1,32 @@
-// Placeholder theme — swap accent/bg tokens once mockup direction is confirmed.
-// Current: Iron Minimalist (deep navy + burnt orange)
-
+// Hotline Miami synthwave palette — locked 2026-06-09
 export const Colors = {
   bg: {
-    primary: '#060814',      // Ultra deep dark midnight
-    secondary: '#0D0F22',    // Sleek secondary dark slate
-    card: '#141832',         // Card slate blue
-    elevated: '#1D2244',     // Elevated card slate blue
+    primary: '#160a2b',      // Deep purple void
+    secondary: '#10071f',    // Darker void (tab bar, overlays)
+    card: '#1a0d35',         // Card surface
+    elevated: '#22103d',     // Elevated surface
   },
   accent: {
-    primary: '#FF5E3A',      // Vibrant Coral-Orange
-    dim: '#E04E2B',          // Darker coral for transitions/states
-    glow: 'rgba(255, 94, 58, 0.12)', // Subtle highlight glow
-    glowStrong: 'rgba(255, 94, 58, 0.28)', // Stronger glow for active elements
+    primary: '#ff2e88',      // Hot magenta
+    teal: '#19e0c8',         // Teal
+    acid: '#f6e05e',         // Acid yellow
+    purp: '#7b2ff7',         // Purple
+    dim: '#c71d69',          // Darker magenta for states
+    glow: 'rgba(255,46,136,0.12)',
+    glowStrong: 'rgba(255,46,136,0.28)',
   },
   text: {
-    primary: '#F5F6FA',      // High contrast bright off-white
-    secondary: '#A2A7C3',    // Readable secondary slate gray
-    muted: '#6E7395',        // Enhanced contrast for small captions (passes AA)
-    inverse: '#060814',      // Contrast text on light accents
+    primary: '#fdeaf4',      // Ink — warm off-white
+    secondary: '#a98ec9',    // Dim — muted purple
+    muted: '#6b5280',        // Deep muted purple
+    inverse: '#160a2b',      // Dark text on light backgrounds
   },
   status: {
-    success: '#10B981',      // Emerald Green
-    warning: '#F59E0B',      // Amber Gold
-    error: '#EF4444',        // Rose Red
-    info: '#3B82F6',         // Royal Blue
+    success: '#19e0c8',      // Teal
+    warning: '#f6e05e',      // Acid yellow
+    error: '#ff2e88',        // Magenta
+    info: '#7b2ff7',         // Purple
   },
-  border: '#222851',         // Premium thin border slate
-  overlay: 'rgba(6, 8, 20, 0.88)',
+  border: '#2d1555',         // Subtle purple border
+  overlay: 'rgba(22, 10, 43, 0.88)',
 } as const;
-

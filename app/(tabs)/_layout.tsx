@@ -1,6 +1,12 @@
-import { Text } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
+import {
+  TodayIcon,
+  HistoryIcon,
+  ProgressIcon,
+  CoachIcon,
+  KitIcon,
+} from '../../src/components/icons/TabIcons';
 
 export default function TabsLayout() {
   return (
@@ -8,22 +14,22 @@ export default function TabsLayout() {
       screenOptions={{
         tabBarStyle: {
           backgroundColor: Colors.bg.secondary,
-          borderTopColor: Colors.border,
-          borderTopWidth: 1.5,
+          borderTopColor: Colors.accent.primary,
+          borderTopWidth: 2,
           height: 68,
           paddingTop: 10,
           paddingBottom: 12,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
-          letterSpacing: 0.3,
+          fontFamily: 'VT323_400Regular',
+          fontSize: 14,
+          letterSpacing: 1,
           marginTop: 2,
         },
-        tabBarActiveTintColor: Colors.accent.primary,
+        tabBarActiveTintColor: Colors.accent.acid,
         tabBarInactiveTintColor: Colors.text.muted,
-        headerStyle: { backgroundColor: Colors.bg.primary },
-        headerTintColor: Colors.text.primary,
+        headerStyle: { backgroundColor: Colors.bg.secondary },
+        headerTintColor: Colors.accent.primary,
         headerTitleStyle: {
           fontSize: 22,
           fontWeight: '800',
@@ -37,9 +43,7 @@ export default function TabsLayout() {
         options={{
           title: 'Today',
           tabBarLabel: 'Today',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>🏋️</Text>
-          ),
+          tabBarIcon: ({ color }) => <TodayIcon color={color as string} size={22} />,
         }}
       />
       <Tabs.Screen
@@ -47,9 +51,7 @@ export default function TabsLayout() {
         options={{
           title: 'History',
           tabBarLabel: 'History',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>📋</Text>
-          ),
+          tabBarIcon: ({ color }) => <HistoryIcon color={color as string} size={22} />,
         }}
       />
       <Tabs.Screen
@@ -57,9 +59,7 @@ export default function TabsLayout() {
         options={{
           title: 'Progress',
           tabBarLabel: 'Progress',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>📈</Text>
-          ),
+          tabBarIcon: ({ color }) => <ProgressIcon color={color as string} size={22} />,
         }}
       />
       <Tabs.Screen
@@ -67,9 +67,7 @@ export default function TabsLayout() {
         options={{
           title: 'Coach Settings',
           tabBarLabel: 'Coach',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>🎯</Text>
-          ),
+          tabBarIcon: ({ color }) => <CoachIcon color={color as string} size={22} />,
         }}
       />
       <Tabs.Screen
@@ -77,9 +75,7 @@ export default function TabsLayout() {
         options={{
           title: 'My Equipment',
           tabBarLabel: 'Kit',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>⚙️</Text>
-          ),
+          tabBarIcon: ({ color }) => <KitIcon color={color as string} size={22} />,
         }}
       />
     </Tabs>

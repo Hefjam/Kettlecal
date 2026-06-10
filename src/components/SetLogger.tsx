@@ -49,9 +49,9 @@ export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: S
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
-        <Text style={[Typography.label, styles.setLabel]}>Set {setNumber}</Text>
+        <Text style={styles.setLabel}>Set {setNumber}</Text>
         {previousSet && (
-          <Text style={[Typography.caption, styles.previous]}>
+          <Text style={styles.previous}>
             prev:{' '}
             {previousSet.reps != null ? `${previousSet.reps} reps` : ''}
             {previousSet.weight != null ? ` · ${previousSet.weight}kg` : ''}
@@ -104,7 +104,7 @@ export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: S
           )}
 
           <TouchableOpacity style={styles.logBtn} onPress={handleLog}>
-            <Text style={styles.logBtnText}>✓</Text>
+            <Text style={styles.logBtnText}>LOG SET</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -114,24 +114,26 @@ export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: S
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.bg.secondary,
-    borderWidth: 1.5,
+    backgroundColor: Colors.bg.elevated,
+    borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 16,
     marginVertical: 8,
   },
   setLabel: {
+    fontFamily: 'Anton_400Regular',
     fontSize: 12,
-    fontWeight: '800',
-    color: Colors.accent.primary,
+    color: Colors.text.secondary,
+    textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 2,
   },
   previous: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 16,
     marginBottom: 12,
-    color: Colors.text.secondary,
-    fontWeight: '600',
+    color: Colors.accent.teal,
   },
   inputRow: {
     flexDirection: 'row',
@@ -143,30 +145,29 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inputLabel: {
-    color: Colors.text.secondary,
-    fontWeight: '700',
+    fontFamily: 'Anton_400Regular',
+    color: Colors.text.muted,
     fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   input: {
+    fontFamily: 'VT323_400Regular',
     backgroundColor: Colors.bg.elevated,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 12,
+    borderRadius: 8,
     height: 50,
     paddingHorizontal: 8,
-    color: Colors.text.primary,
-    fontSize: 22,
-    fontWeight: '800',
+    color: Colors.accent.acid,
+    fontSize: 28,
     textAlign: 'center',
-    fontVariant: ['tabular-nums'],
   },
   logBtn: {
-    width: 50,
     height: 50,
+    paddingHorizontal: 16,
     backgroundColor: Colors.accent.primary,
-    borderRadius: 14,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: Colors.accent.primary,
@@ -176,8 +177,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   logBtnText: {
-    color: Colors.text.primary,
-    fontSize: 24,
-    fontWeight: '900',
+    fontFamily: 'Bungee_400Regular',
+    color: Colors.text.inverse,
+    fontSize: 14,
   },
 });

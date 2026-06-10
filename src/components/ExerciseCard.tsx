@@ -6,6 +6,7 @@ import { Typography } from '../theme/typography';
 import { Exercise, ExerciseFeedback, ExerciseLog, ExerciseTarget, Set } from '../types';
 import { SetLogger } from './SetLogger';
 import { RestTimer } from './RestTimer';
+import { SynthCard } from './SynthCard';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -39,67 +40,68 @@ export function ExerciseCard({
     <Animated.View
       entering={FadeInRight.duration(250)}
       exiting={FadeOutLeft.duration(200)}
-      style={styles.card}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={Typography.h1}>{exercise.name}</Text>
-          <View style={styles.tags}>
-            <Tag label={exercise.category} />
-            {exercise.muscleGroups.slice(0, 2).map((m) => (
-              <Tag key={m} label={m} dim />
+      <SynthCard style={{ marginBottom: 12 }}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.exerciseName}>{exercise.name}</Text>
+            <View style={styles.tags}>
+              <Tag label={exercise.category} />
+              {exercise.muscleGroups.slice(0, 2).map((m) => (
+                <Tag key={m} label={m} dim />
+              ))}
+            </View>
+          </View>
+          {exercise.type === 'emom' && (
+            <TouchableOpacity style={styles.emomBtn} onPress={onEmomPress}>
+              <Text style={styles.emomBtnText}>🔔 EMOM</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Coach target — the visible "beat last / leveled up" prompt */}
+        {target && <Text style={styles.targetReason}>🎯 {target.reason}</Text>}
+
+        {/* Set history */}
+        {log.sets.length > 0 && (
+          <View style={styles.history}>
+            {log.sets.map((s, i) => (
+              <View key={i} style={styles.historyRow}>
+                <Text style={styles.setNumLabel}>Set {i + 1}</Text>
+                <Text style={styles.setVal}>
+                  {s.reps != null ? `${s.reps} reps` : ''}
+                  {s.weight != null ? ` · ${s.weight}kg` : ''}
+                  {s.duration != null ? ` · ${s.duration}s` : ''}
+                </Text>
+                <Text style={styles.checkmark}>✓</Text>
+              </View>
             ))}
           </View>
-        </View>
-        {exercise.type === 'emom' && (
-          <TouchableOpacity style={styles.emomBtn} onPress={onEmomPress}>
-            <Text style={styles.emomBtnText}>🔔 EMOM</Text>
-          </TouchableOpacity>
         )}
-      </View>
 
-      {/* Coach target — the visible "beat last / leveled up" prompt */}
-      {target && <Text style={[Typography.caption, styles.targetReason]}>🎯 {target.reason}</Text>}
+        {/* Rest timer or set logger */}
+        {isRestActive ? (
+          <RestTimer
+            seconds={restSeconds}
+            onComplete={onRestComplete}
+            onSkip={onRestSkip}
+          />
+        ) : (
+          <SetLogger
+            key={completedSets + 1}
+            exercise={exercise}
+            setNumber={completedSets + 1}
+            previousSet={lastSet}
+            target={target}
+            onLog={onAddSet}
+          />
+        )}
 
-      {/* Set history */}
-      {log.sets.length > 0 && (
-        <View style={styles.history}>
-          {log.sets.map((s, i) => (
-            <View key={i} style={styles.historyRow}>
-              <Text style={[Typography.caption, { color: Colors.text.muted }]}>Set {i + 1}</Text>
-              <Text style={[Typography.mono, { fontSize: 14 }]}>
-                {s.reps != null ? `${s.reps} reps` : ''}
-                {s.weight != null ? ` · ${s.weight}kg` : ''}
-                {s.duration != null ? ` · ${s.duration}s` : ''}
-              </Text>
-              <Text style={styles.checkmark}>✓</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Rest timer or set logger */}
-      {isRestActive ? (
-        <RestTimer
-          seconds={restSeconds}
-          onComplete={onRestComplete}
-          onSkip={onRestSkip}
-        />
-      ) : (
-        <SetLogger
-          key={completedSets + 1}
-          exercise={exercise}
-          setNumber={completedSets + 1}
-          previousSet={lastSet}
-          target={target}
-          onLog={onAddSet}
-        />
-      )}
-
-      {/* End-of-exercise judgment — optional, placed after the sets so it's a
-          "how did that feel" step, not something tapped before lifting. */}
-      <FeedbackControls feedback={log.feedback} onChange={onFeedbackChange} />
+        {/* End-of-exercise judgment — optional, placed after the sets so it's a
+            "how did that feel" step, not something tapped before lifting. */}
+        <FeedbackControls feedback={log.feedback} onChange={onFeedbackChange} />
+      </SynthCard>
     </Animated.View>
   );
 }
@@ -191,14 +193,6 @@ function Tag({ label, dim }: { label: string; dim?: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.bg.card,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -206,6 +200,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerText: { flex: 1 },
+  exerciseName: {
+    fontFamily: 'Anton_400Regular',
+    fontSize: 28,
+    textTransform: 'uppercase',
+    color: Colors.text.primary,
+  },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -213,31 +213,32 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   tag: {
-    backgroundColor: Colors.accent.glow,
+    backgroundColor: 'rgba(255,46,136,0.15)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.accent.glowStrong,
+    borderColor: Colors.accent.primary,
   },
   tagDim: {
     backgroundColor: Colors.bg.elevated,
     borderColor: Colors.border,
   },
   tagText: {
+    fontFamily: 'Anton_400Regular',
     fontSize: 11,
-    fontWeight: '800',
-    color: Colors.accent.primary,
+    color: Colors.accent.acid,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   tagTextDim: {
-    color: Colors.text.muted,
+    color: Colors.text.secondary,
   },
   targetReason: {
-    color: Colors.accent.primary,
+    fontFamily: 'VT323_400Regular',
+    fontSize: 18,
+    color: Colors.accent.teal,
     marginBottom: 16,
-    fontWeight: '700',
   },
   feedbackBlock: {
     marginTop: 18,
@@ -246,11 +247,11 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
   },
   feedbackPrompt: {
+    fontFamily: 'Anton_400Regular',
     color: Colors.text.secondary,
     fontSize: 12,
-    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1,
     marginBottom: 10,
   },
   feedback: {
@@ -258,23 +259,24 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   feedbackNote: {
+    fontFamily: 'VT323_400Regular',
     color: Colors.text.muted,
-    fontSize: 11,
+    fontSize: 14,
     marginTop: 10,
-    lineHeight: 14,
+    lineHeight: 18,
   },
   stepper: {
     flex: 1,
     backgroundColor: Colors.bg.elevated,
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.border,
   },
   stepperLabel: {
-    color: Colors.text.secondary,
+    fontFamily: 'Anton_400Regular',
+    color: Colors.text.muted,
     fontSize: 11,
-    fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -291,23 +293,22 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bg.card,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.border,
   },
   stepperBtnText: {
+    fontFamily: 'VT323_400Regular',
     color: Colors.text.primary,
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 28,
   },
   stepperValue: {
-    color: Colors.text.primary,
-    fontSize: 20,
-    fontWeight: '900',
+    fontFamily: 'VT323_400Regular',
+    color: Colors.accent.acid,
+    fontSize: 28,
     fontVariant: ['tabular-nums'],
   },
   stepperValueUnset: {
     color: Colors.text.muted,
-    fontWeight: '700',
   },
   history: {
     borderTopWidth: 1.5,
@@ -321,22 +322,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  setNumLabel: {
+    fontFamily: 'VT323_400Regular',
+    color: Colors.text.muted,
+    fontSize: 16,
+  },
+  setVal: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 20,
+    color: Colors.accent.acid,
+  },
   checkmark: {
-    color: Colors.status.success,
-    fontSize: 15,
-    fontWeight: '800',
+    fontFamily: 'VT323_400Regular',
+    color: Colors.accent.teal,
+    fontSize: 22,
   },
   emomBtn: {
-    backgroundColor: Colors.accent.glow,
+    backgroundColor: 'rgba(25,224,200,0.12)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Colors.accent.primary,
+    borderColor: Colors.accent.teal,
   },
   emomBtnText: {
-    color: Colors.accent.primary,
-    fontWeight: '800',
+    fontFamily: 'Anton_400Regular',
+    color: Colors.accent.teal,
+    textTransform: 'uppercase',
     fontSize: 12,
   },
 });

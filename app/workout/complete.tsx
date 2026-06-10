@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -8,9 +8,9 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
-import { Typography } from '../../src/theme/typography';
 import { useWorkoutHistory } from '../../src/stores/useWorkoutHistory';
 import { EXERCISES } from '../../src/data/exercises';
+import { SynthCard } from '../../src/components/SynthCard';
 
 export default function CompleteScreen() {
   const { sessions } = useWorkoutHistory();
@@ -44,20 +44,32 @@ export default function CompleteScreen() {
     router.replace('/');
   };
 
+  const webBg = Platform.OS === 'web' ? {
+    backgroundImage: `repeating-linear-gradient(45deg, rgba(123,47,247,.10) 0 22px, transparent 22px 44px), repeating-linear-gradient(-45deg, rgba(255,46,136,.07) 0 22px, transparent 22px 44px)`,
+  } as any : {};
+
+  const webTitleStyle = Platform.OS === 'web' ? {
+    textShadow: '3px 0 #ff2e88, -3px 0 #19e0c8, 0 0 22px rgba(255,46,136,.5)',
+  } as any : {};
+
+  const webHomeBtnStyle = Platform.OS === 'web' ? {
+    boxShadow: '6px 6px 0 rgba(0,0,0,.55), 0 0 26px rgba(255,46,136,.6)',
+  } as any : {};
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, webBg]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Animated.View style={animatedTrophyStyle}>
           <Text style={styles.trophy}>🏆</Text>
         </Animated.View>
-        
-        <Text style={[Typography.display, styles.title]}>Session Complete</Text>
-        <Text style={[Typography.caption, { marginBottom: 32, fontWeight: '700', textTransform: 'uppercase', color: Colors.text.secondary }]}>
+
+        <Text style={[styles.title, webTitleStyle]}>Session Complete</Text>
+        <Text style={styles.dateSubtitle}>
           {new Date(latest.date).toLocaleDateString('en-US', {
             weekday: 'long',
             month: 'long',
             day: 'numeric',
-          })}
+          }).toUpperCase()}
         </Text>
 
         <View style={styles.statsRow}>
@@ -66,27 +78,33 @@ export default function CompleteScreen() {
           <Stat value={String(totalReps)} label="reps" />
         </View>
 
-        <Text style={[Typography.label, { alignSelf: 'flex-start', marginBottom: 12 }]}>Exercises Completed</Text>
+        <Text style={styles.exercisesLabel}>Exercises Completed</Text>
         <View style={styles.exerciseList}>
           {latest.exerciseLogs.map((log) => {
             const ex = EXERCISES.find((e) => e.id === log.exerciseId);
             if (!ex) return null;
             return (
-              <View key={log.exerciseId} style={styles.exerciseRow}>
-                <Text style={[Typography.body, { fontWeight: '700' }]}>{ex.name}</Text>
-                <View style={styles.exerciseSetsBadge}>
-                  <Text style={styles.exerciseSetsText}>
-                    {log.sets.length} Sets
-                  </Text>
+              <SynthCard key={log.exerciseId} style={styles.exerciseRowCard}>
+                <View style={styles.exerciseRowInner}>
+                  <Text style={styles.exerciseName}>{ex.name.toUpperCase()}</Text>
+                  <View style={styles.exerciseSetsBadge}>
+                    <Text style={styles.exerciseSetsText}>
+                      {log.sets.length} Sets
+                    </Text>
+                  </View>
                 </View>
-              </View>
+              </SynthCard>
             );
           })}
         </View>
       </ScrollView>
 
       <View style={styles.cta}>
-        <TouchableOpacity style={styles.homeBtn} onPress={handleHome} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={[styles.homeBtn, webHomeBtnStyle]}
+          onPress={handleHome}
+          activeOpacity={0.85}
+        >
           <Text style={styles.homeBtnText}>Back to Today</Text>
         </TouchableOpacity>
       </View>
@@ -96,12 +114,10 @@ export default function CompleteScreen() {
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={styles.statBox}>
-      <Text style={[Typography.monoLarge, { color: Colors.accent.primary, fontSize: 36, lineHeight: 40 }]}>{value}</Text>
-      <Text style={[Typography.caption, { fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4, fontSize: 11 }]}>
-        {label}
-      </Text>
-    </View>
+    <SynthCard style={styles.statBox}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label.toUpperCase()}</Text>
+    </SynthCard>
   );
 }
 
@@ -109,46 +125,78 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg.primary },
   scroll: { padding: 24, alignItems: 'center', paddingBottom: 120 },
   trophy: { fontSize: 80, marginBottom: 16 },
-  title: { textAlign: 'center', marginBottom: 6 },
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 32 },
+  title: {
+    fontFamily: 'Bungee_400Regular',
+    textTransform: 'uppercase',
+    fontSize: 36,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  dateSubtitle: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 16,
+    color: Colors.text.secondary,
+    textTransform: 'uppercase',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 32, width: '100%' },
   statBox: {
     flex: 1,
-    backgroundColor: Colors.bg.card,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    padding: 16,
     alignItems: 'center',
-    shadowColor: Colors.accent.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    marginBottom: 0,
   },
-  exerciseList: { width: '100%', gap: 10 },
-  exerciseRow: {
+  statValue: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 64,
+    color: Colors.accent.acid,
+    lineHeight: 68,
+  },
+  statLabel: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.text.secondary,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  exercisesLabel: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.accent.teal,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    fontSize: 13,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  exerciseList: { width: '100%' },
+  exerciseRowCard: { marginBottom: 10 },
+  exerciseRowInner: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.bg.card,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    padding: 16,
+  },
+  exerciseName: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.text.primary,
+    fontSize: 14,
+    textTransform: 'uppercase',
+    flex: 1,
   },
   exerciseSetsBadge: {
-    backgroundColor: Colors.accent.glow,
+    backgroundColor: 'rgba(255,46,136,0.15)',
     borderWidth: 1,
-    borderColor: Colors.accent.glowStrong,
+    borderColor: Colors.accent.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 4,
   },
   exerciseSetsText: {
-    color: Colors.accent.primary,
-    fontWeight: '800',
-    fontSize: 12,
-    textTransform: 'uppercase',
+    fontFamily: 'VT323_400Regular',
+    color: Colors.accent.acid,
+    fontSize: 16,
   },
   cta: {
     position: 'absolute',
@@ -157,21 +205,22 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     paddingBottom: 32,
-    backgroundColor: Colors.bg.primary,
+    backgroundColor: Colors.bg.secondary,
     borderTopWidth: 1.5,
-    borderTopColor: Colors.border,
+    borderTopColor: Colors.accent.primary,
   },
   homeBtn: {
     backgroundColor: Colors.accent.primary,
-    borderRadius: 16,
+    borderRadius: 4,
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.accent.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
   },
-  homeBtnText: { color: Colors.text.primary, fontSize: 17, fontWeight: '800', letterSpacing: -0.2 },
+  homeBtnText: {
+    color: Colors.text.inverse,
+    fontFamily: 'Bungee_400Regular',
+    fontSize: 17,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+  },
 });

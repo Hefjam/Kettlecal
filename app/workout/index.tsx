@@ -11,7 +11,6 @@ import {
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
-import { Typography } from '../../src/theme/typography';
 import { EXERCISES } from '../../src/data/exercises';
 import { useActiveSession } from '../../src/stores/useActiveSession';
 import { useWorkoutHistory } from '../../src/stores/useWorkoutHistory';
@@ -155,14 +154,21 @@ export default function WorkoutScreen() {
   const elapsedMin = Math.floor(secondsElapsed / 60);
   const elapsedSec = secondsElapsed % 60;
 
+  const webBg = Platform.OS === 'web' ? {
+    backgroundImage: `repeating-linear-gradient(45deg, rgba(123,47,247,.10) 0 22px, transparent 22px 44px), repeating-linear-gradient(-45deg, rgba(255,46,136,.07) 0 22px, transparent 22px 44px)`,
+  } as any : {};
+
+  const webNavBtnShadow = Platform.OS === 'web' ? {
+    boxShadow: '6px 6px 0 rgba(0,0,0,.55), 0 0 26px rgba(255,46,136,.6)',
+  } as any : {};
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, webBg]}>
       {/* Top bar */}
       <View style={styles.topBar}>
         <TouchableOpacity
           onPress={handleAbandon}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          style={styles.abandonBtn}
           activeOpacity={0.7}
         >
           <Text style={styles.abandonBtnText}>✕ Abandon</Text>
@@ -170,7 +176,7 @@ export default function WorkoutScreen() {
 
         <View style={styles.timerPill}>
           <Text style={styles.timerText}>
-            ⏱️ {String(elapsedMin).padStart(2, '0')}:{String(elapsedSec).padStart(2, '0')}
+            ⏱ {String(elapsedMin).padStart(2, '0')}:{String(elapsedSec).padStart(2, '0')}
           </Text>
         </View>
 
@@ -237,12 +243,13 @@ export default function WorkoutScreen() {
             styles.navBtn,
             styles.navBtnPrimary,
             currentExerciseIndex === totalExercises - 1 && styles.navBtnDisabled,
+            webNavBtnShadow,
           ]}
           onPress={handleNext}
           disabled={currentExerciseIndex === totalExercises - 1}
           activeOpacity={0.85}
         >
-          <Text style={[styles.navBtnText, { color: Colors.text.primary }]}>Next →</Text>
+          <Text style={styles.navBtnPrimaryText}>Next →</Text>
         </TouchableOpacity>
       </View>
 
@@ -261,19 +268,13 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.accent.primary,
     backgroundColor: Colors.bg.secondary,
-  },
-  abandonBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
   },
   abandonBtnText: {
     color: Colors.status.error,
-    fontWeight: '700',
-    fontSize: 13,
+    fontFamily: 'VT323_400Regular',
+    fontSize: 16,
   },
   timerPill: {
     backgroundColor: Colors.bg.elevated,
@@ -284,28 +285,22 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   timerText: {
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.text.secondary,
+    fontFamily: 'VT323_400Regular',
+    fontSize: 18,
+    color: Colors.accent.teal,
   },
   finishBtn: {
-    backgroundColor: Colors.status.success,
+    backgroundColor: Colors.accent.teal,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 12,
-    shadowColor: Colors.status.success,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 4,
   },
   finishBtnText: {
-    color: Colors.text.primary,
-    fontWeight: '800',
+    color: Colors.text.inverse,
+    fontFamily: 'Anton_400Regular',
     fontSize: 13,
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   dotRow: {
     flexDirection: 'row',
@@ -324,21 +319,20 @@ const styles = StyleSheet.create({
     width: 24,
   },
   dotDone: {
-    backgroundColor: Colors.status.success,
+    backgroundColor: Colors.accent.teal,
   },
   dotActiveDone: {
     backgroundColor: Colors.accent.primary,
     width: 24,
-    borderColor: Colors.status.success,
+    borderColor: Colors.accent.teal,
     borderWidth: 1.5,
   },
   scroll: { paddingHorizontal: 20, paddingBottom: 130 },
   progressCounter: {
-    color: Colors.text.muted,
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    fontFamily: 'VT323_400Regular',
+    color: Colors.text.secondary,
+    fontSize: 16,
+    letterSpacing: 1,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -351,9 +345,9 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     paddingBottom: 32,
-    backgroundColor: Colors.bg.primary,
+    backgroundColor: Colors.bg.secondary,
     borderTopWidth: 1.5,
-    borderTopColor: Colors.border,
+    borderTopColor: Colors.accent.primary,
   },
   navBtn: {
     flex: 1,
@@ -361,7 +355,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bg.elevated,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    borderRadius: 14,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -369,19 +363,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent.primary,
     borderColor: Colors.accent.primary,
     flex: 2,
-    shadowColor: Colors.accent.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
   },
   navBtnDisabled: {
-    opacity: 0.25,
+    opacity: 0.2,
   },
   navBtnText: {
     color: Colors.text.secondary,
-    fontWeight: '800',
+    fontFamily: 'Anton_400Regular',
     fontSize: 15,
-    letterSpacing: -0.2,
+    letterSpacing: 0.5,
+  },
+  navBtnPrimaryText: {
+    color: Colors.text.inverse,
+    fontFamily: 'Bungee_400Regular',
+    fontSize: 15,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
   },
 });

@@ -78,6 +78,10 @@ function CustomSwitch({ active }: { active: boolean }) {
   );
 }
 
+const webBg = Platform.OS === 'web' ? {
+  backgroundImage: `repeating-linear-gradient(45deg, rgba(123,47,247,.10) 0 22px, transparent 22px 44px), repeating-linear-gradient(-45deg, rgba(255,46,136,.07) 0 22px, transparent 22px 44px)`,
+} as any : {};
+
 export default function EquipmentScreen() {
   const { equipment, toggleItem, addKettlebell, removeKettlebell } = useEquipment();
   const [newKbWeight, setNewKbWeight] = useState('');
@@ -158,14 +162,14 @@ export default function EquipmentScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-      <Text style={[Typography.h2, styles.title]}>My Equipment</Text>
+    <ScrollView style={[styles.container, webBg]} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <Text style={styles.title}>My Equipment</Text>
       <Text style={[Typography.caption, styles.subtitle]}>
         Exercises are filtered to match what you have available.
       </Text>
 
       {/* Static equipment */}
-      <Text style={[Typography.label, styles.sectionLabel]}>Training Gear</Text>
+      <Text style={styles.sectionLabel}>Training Gear</Text>
       {equipmentItems.map((item) => {
         const active = equipment.items.includes(item);
         return (
@@ -183,7 +187,7 @@ export default function EquipmentScreen() {
       })}
 
       {/* Kettlebells */}
-      <Text style={[Typography.label, styles.sectionLabel, { marginTop: 28 }]}>Kettlebells</Text>
+      <Text style={[styles.sectionLabel, { marginTop: 28 }]}>Kettlebells</Text>
       {equipment.kettlebells.length === 0 ? (
         <Text style={[Typography.caption, { color: Colors.text.muted, marginBottom: 12 }]}>
           No kettlebells added yet. Add your kettlebells below.
@@ -193,7 +197,9 @@ export default function EquipmentScreen() {
           <View key={kb.weightKg} style={styles.kbRow}>
             <Text style={styles.itemIcon}>🔔</Text>
             <Text style={[Typography.body, { flex: 1, fontWeight: '700' }]}>
-              {kb.quantity}× {kb.weightKg}kg
+              <Text style={{ fontFamily: 'VT323_400Regular', fontSize: 18, color: Colors.accent.acid }}>
+                {kb.quantity}× {kb.weightKg}kg
+              </Text>
             </Text>
             <TouchableOpacity
               style={styles.removeBtn}
@@ -208,7 +214,7 @@ export default function EquipmentScreen() {
 
       {/* Add kettlebell */}
       <View style={styles.addKbBox}>
-        <Text style={[Typography.caption, { fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }]}>
+        <Text style={styles.addKbLabel}>
           Add Kettlebell Inventory
         </Text>
         <View style={styles.addKbRow}>
@@ -235,13 +241,13 @@ export default function EquipmentScreen() {
       </View>
 
       {/* Backup */}
-      <Text style={[Typography.label, styles.sectionLabel, { marginTop: 32 }]}>Backup & Restore</Text>
+      <Text style={[styles.sectionLabel, { marginTop: 32 }]}>Backup &amp; Restore</Text>
       <Text style={[Typography.caption, { marginBottom: 14, color: Colors.text.secondary }]}>
         Your training history lives only on this device. Save a text backup to protect your data.
       </Text>
 
-      <TouchableOpacity style={styles.backupBtn} onPress={handleExport} activeOpacity={0.8}>
-        <Text style={styles.backupBtnText}>Export Backup JSON</Text>
+      <TouchableOpacity style={styles.exportBtn} onPress={handleExport} activeOpacity={0.8}>
+        <Text style={styles.exportBtnText}>Export Backup JSON</Text>
       </TouchableOpacity>
 
       {exportText !== '' && (
@@ -265,11 +271,11 @@ export default function EquipmentScreen() {
         autoCorrect={false}
       />
       <TouchableOpacity
-        style={[styles.backupBtn, { marginTop: 10, borderColor: Colors.status.error }]}
+        style={[styles.importBtn, { marginTop: 10 }]}
         onPress={handleImport}
         activeOpacity={0.8}
       >
-        <Text style={[styles.backupBtnText, { color: Colors.status.error }]}>Import Backup JSON</Text>
+        <Text style={styles.importBtnText}>Import Backup JSON</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -278,23 +284,34 @@ export default function EquipmentScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg.primary },
   scroll: { padding: 20, paddingBottom: 40 },
-  title: { marginBottom: 4 },
-  subtitle: { marginBottom: 24 },
+  title: {
+    fontFamily: 'Bungee_400Regular',
+    textTransform: 'uppercase',
+    color: Colors.text.primary,
+    fontSize: 26,
+    marginBottom: 4,
+  },
+  subtitle: { marginBottom: 24, color: Colors.text.secondary },
   sectionLabel: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.accent.teal,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    fontSize: 13,
     marginBottom: 12,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.bg.card,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 16,
     marginBottom: 10,
     borderWidth: 1.5,
     borderColor: Colors.border,
   },
   itemRowActive: {
-    borderColor: Colors.border, // Clean, non-distracting borders
+    borderColor: Colors.accent.primary,
   },
   itemIcon: { fontSize: 22, marginRight: 12 },
   switchTrack: {
@@ -315,7 +332,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.bg.card,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 16,
     marginBottom: 10,
     borderWidth: 1.5,
@@ -323,7 +340,7 @@ const styles = StyleSheet.create({
   },
   removeBtn: {
     padding: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    backgroundColor: 'rgba(255,46,136,0.10)',
     borderRadius: 8,
     minHeight: 32,
     minWidth: 32,
@@ -339,9 +356,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bg.secondary,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    borderRadius: 20,
+    borderRadius: 8,
     padding: 16,
     marginTop: 12,
+  },
+  addKbLabel: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.accent.teal,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    fontSize: 12,
+    marginBottom: 8,
   },
   addKbRow: {
     flexDirection: 'row',
@@ -352,7 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bg.elevated,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    borderRadius: 12,
+    borderRadius: 4,
     height: 48,
     paddingHorizontal: 12,
     color: Colors.text.primary,
@@ -361,38 +386,57 @@ const styles = StyleSheet.create({
   },
   addBtn: {
     backgroundColor: Colors.accent.primary,
-    borderRadius: 14,
+    borderRadius: 4,
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.accent.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
   },
-  addBtnText: { color: Colors.text.primary, fontWeight: '800', fontSize: 15 },
-  backupBtn: {
+  addBtnText: {
+    fontFamily: 'Bungee_400Regular',
+    color: Colors.text.inverse,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    fontSize: 13,
+  },
+  exportBtn: {
     backgroundColor: Colors.bg.card,
-    borderRadius: 14,
+    borderRadius: 4,
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: Colors.accent.primary,
+    borderColor: Colors.accent.teal,
   },
-  backupBtnText: { color: Colors.text.primary, fontWeight: '800', fontSize: 14 },
+  exportBtnText: {
+    color: Colors.accent.teal,
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  importBtn: {
+    backgroundColor: Colors.bg.card,
+    borderRadius: 4,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.status.error,
+  },
+  importBtnText: {
+    color: Colors.status.error,
+    fontWeight: '800',
+    fontSize: 14,
+  },
   backupBox: {
     backgroundColor: Colors.bg.card,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: Colors.border,
     marginTop: 10,
     padding: 14,
     minHeight: 110,
     color: Colors.text.primary,
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontSize: 14,
+    fontFamily: 'VT323_400Regular',
     textAlignVertical: 'top',
   },
 });

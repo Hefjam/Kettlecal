@@ -17,7 +17,6 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { Colors } from '../theme/colors';
-import { Typography } from '../theme/typography';
 
 interface EmomTimerProps {
   visible: boolean;
@@ -144,22 +143,20 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
       <View style={styles.sheet}>
         <View style={styles.handle} />
 
-        <Text style={[Typography.label, { textAlign: 'center', marginBottom: 4, color: Colors.text.muted }]}>
-          EMOM TIMER
-        </Text>
+        <Text style={styles.emomHeader}>EMOM TIMER</Text>
 
         {/* Bell + minute indicator */}
         <Animated.View style={[styles.bellRow, bellStyle]}>
           <Text style={styles.bellEmoji}>🔔</Text>
           {running && !isDone && (
-            <Text style={[Typography.caption, { color: Colors.accent.primary, marginLeft: 8, fontWeight: '700' }]}>
+            <Text style={styles.minuteIndicator}>
               min {currentMinute + 1} · next in {secondsLeftInMinute}s
             </Text>
           )}
         </Animated.View>
 
         {/* Main countdown */}
-        <Text style={[Typography.monoLarge, styles.countdown]}>
+        <Text style={styles.countdown}>
           {formatRemaining()}
         </Text>
 
@@ -171,9 +168,7 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
         {/* Duration picker */}
         {!running && elapsedMs === 0 && (
           <View style={styles.durationRow}>
-            <Text style={[Typography.caption, { fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-              Duration
-            </Text>
+            <Text style={styles.durationLabel}>Duration</Text>
             <View style={styles.durationControls}>
               <TouchableOpacity
                 style={styles.durationBtn}
@@ -182,7 +177,7 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
               >
                 <Text style={styles.durationBtnText}>−</Text>
               </TouchableOpacity>
-              <Text style={[Typography.mono, { marginHorizontal: 20 }]}>{totalMinutes} min</Text>
+              <Text style={styles.durationValue}>{totalMinutes} min</Text>
               <TouchableOpacity
                 style={styles.durationBtn}
                 onPress={() => adjustDuration(1)}
@@ -201,7 +196,7 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
             onPress={handleReset}
             activeOpacity={0.7}
           >
-            <Text style={[Typography.body, { color: Colors.text.secondary, fontWeight: '700' }]}>Reset</Text>
+            <Text style={styles.resetBtnText}>Reset</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.primaryBtn, isDone && styles.primaryBtnSuccess]}
@@ -241,6 +236,14 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 20,
   },
+  emomHeader: {
+    fontFamily: 'Bungee_400Regular',
+    color: Colors.accent.primary,
+    textAlign: 'center',
+    fontSize: 20,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
   bellRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -250,11 +253,19 @@ const styles = StyleSheet.create({
   bellEmoji: {
     fontSize: 32,
   },
+  minuteIndicator: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.text.secondary,
+    textTransform: 'uppercase',
+    fontSize: 13,
+    marginLeft: 8,
+  },
   countdown: {
+    fontFamily: 'VT323_400Regular',
     textAlign: 'center',
-    color: Colors.accent.primary,
+    color: Colors.accent.acid,
     marginBottom: 16,
-    fontSize: 56,
+    fontSize: 96,
   },
   progressTrack: {
     height: 6,
@@ -274,6 +285,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 28,
   },
+  durationLabel: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.text.secondary,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   durationControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -290,9 +308,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   durationBtnText: {
+    fontFamily: 'VT323_400Regular',
     color: Colors.text.primary,
-    fontSize: 22,
-    lineHeight: 24,
+    fontSize: 28,
+    lineHeight: 30,
+  },
+  durationValue: {
+    fontFamily: 'VT323_400Regular',
+    color: Colors.accent.acid,
+    fontSize: 28,
+    marginHorizontal: 20,
   },
   controls: {
     flexDirection: 'row',
@@ -308,11 +333,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  resetBtnText: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.text.secondary,
+    fontSize: 14,
+    textTransform: 'uppercase',
+  },
   primaryBtn: {
     flex: 2,
     height: 52,
     backgroundColor: Colors.accent.primary,
-    borderRadius: 14,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: Colors.accent.primary,
@@ -326,9 +357,8 @@ const styles = StyleSheet.create({
     shadowColor: Colors.status.success,
   },
   primaryBtnText: {
-    color: Colors.text.primary,
+    fontFamily: 'Bungee_400Regular',
+    color: Colors.text.inverse,
     fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: -0.2,
   },
 });

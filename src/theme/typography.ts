@@ -1,28 +1,38 @@
 import { StyleSheet } from 'react-native';
 import { Colors } from './colors';
 
+// Loaded via useFonts in app/_layout.tsx
+export const Fonts = {
+  bungee: 'Bungee_400Regular',  // Headlines, greet
+  anton: 'Anton_400Regular',    // Exercise names, labels
+  vt323: 'VT323_400Regular',    // Prescriptions, timers, terminal text
+} as const;
+
 export const Typography = StyleSheet.create({
   display: {
-    fontSize: 34,
-    fontWeight: '900',
+    fontSize: 46,
+    fontFamily: 'Bungee_400Regular',
     color: Colors.text.primary,
-    letterSpacing: -0.8,
+    lineHeight: 44,
+    textTransform: 'uppercase',
   },
   h1: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 28,
+    fontFamily: 'Anton_400Regular',
     color: Colors.text.primary,
-    letterSpacing: -0.3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   h2: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 22,
+    fontFamily: 'Anton_400Regular',
     color: Colors.text.primary,
-    letterSpacing: -0.1,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   body: {
     fontSize: 15,
-    fontWeight: '500', // Semi-medium weight feels more premium in dark mode
+    fontWeight: '500',
     color: Colors.text.primary,
     lineHeight: 20,
   },
@@ -33,26 +43,25 @@ export const Typography = StyleSheet.create({
     lineHeight: 16,
   },
   label: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 13,
+    fontFamily: 'Anton_400Regular',
     color: Colors.text.muted,
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 2,
   },
-  // Monospace for numbers, timers, weights
+  // VT323 for numbers, timers, prescriptions — terminal readout aesthetic
   mono: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -0.5,
+    fontSize: 24,
+    fontFamily: 'VT323_400Regular',
+    color: Colors.accent.acid,
+    letterSpacing: 1,
+    lineHeight: 22,
   },
   monoLarge: {
-    fontSize: 52,
-    fontWeight: '900',
-    color: Colors.text.primary,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -1.5,
+    fontSize: 56,
+    fontFamily: 'VT323_400Regular',
+    color: Colors.accent.acid,
+    letterSpacing: 1,
+    lineHeight: 52,
   },
 });
-
