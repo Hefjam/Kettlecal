@@ -20,6 +20,11 @@ import { useTodayPlan } from '../../src/stores/useTodayPlan';
 import { exportBackup, importBackup, StoreRegistry } from '../../src/data/backup';
 import { EquipmentItem, KettlebellWeight } from '../../src/types';
 
+function notify(title: string, message?: string) {
+  if (Platform.OS === 'web') window.alert(message ? `${title}\n\n${message}` : title);
+  else Alert.alert(title, message);
+}
+
 function liveStores(): StoreRegistry {
   return {
     equipment: {
@@ -99,11 +104,11 @@ export default function EquipmentScreen() {
     const weight = parseFloat(newKbWeight);
     const qty = parseInt(newKbQty, 10);
     if (!weight || weight <= 0) {
-      Alert.alert('Invalid weight');
+      notify('Invalid weight');
       return;
     }
     if (!Number.isFinite(qty) || qty <= 0) {
-      Alert.alert('Invalid quantity');
+      notify('Invalid quantity');
       return;
     }
     addKettlebell({ weightKg: weight, quantity: qty });
@@ -126,7 +131,27 @@ export default function EquipmentScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const text = importText.trim();
     if (!text) {
-      Alert.alert('Paste a backup first');
+      notify('Paste a backup first');
+      return;
+    }
+    const restore = () => {
+      try {
+        importBackup(text, liveStores());
+        useTodayPlan.getState().clear();
+        setImportText('');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        notify('Backup restored');
+      } catch (e) {
+        notify('Import failed', e instanceof Error ? e.message : 'Unknown error');
+      }
+    };
+    if (Platform.OS === 'web') {
+      if (
+        window.confirm(
+          'Restore backup?\n\nThis replaces your current equipment, workout history, rotation, and coach profile with the pasted backup.'
+        )
+      )
+        restore();
       return;
     }
     Alert.alert(
@@ -134,21 +159,7 @@ export default function EquipmentScreen() {
       'This replaces your current equipment, workout history, rotation, and coach profile with the pasted backup.',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Restore',
-          style: 'destructive',
-          onPress: () => {
-            try {
-              importBackup(text, liveStores());
-              useTodayPlan.getState().clear();
-              setImportText('');
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert('Backup restored');
-            } catch (e) {
-              Alert.alert('Import failed', e instanceof Error ? e.message : 'Unknown error');
-            }
-          },
-        },
+        { text: 'Restore', style: 'destructive', onPress: restore },
       ]
     );
   };

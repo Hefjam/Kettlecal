@@ -34,6 +34,8 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx expo export --platform web
+      # SPA fallback: GitHub Pages serves 404.html for unknown paths (e.g. /workout on reload)
+      - run: cp dist/index.html dist/404.html
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
