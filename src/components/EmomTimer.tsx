@@ -34,9 +34,12 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
   const [totalMinutes, setTotalMinutes] = useState(10);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [running, setRunning] = useState(false);
+  // JS timers pause while the app is backgrounded/locked, so elapsed time is
+  // derived from wall-clock anchors rather than counting interval ticks.
+  const anchorRef = useRef({ accumulatedMs: 0, startedAt: 0 });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
-  const lastMinuteFiredRef = useRef(-1);
+  const lastMinuteFiredRef = useRef(0);
 
   const bellScale = useSharedValue(1);
   const bellStyle = useAnimatedStyle(() => ({ transform: [{ scale: bellScale.value }] }));
@@ -81,24 +84,22 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
   useEffect(() => {
     if (!running) return;
     intervalRef.current = setInterval(() => {
-      setElapsedMs((prev) => {
-        const next = prev + 250;
-        const minuteJustCompleted = Math.floor(next / MINUTE_MS);
-        if (
-          minuteJustCompleted > lastMinuteFiredRef.current &&
-          next % MINUTE_MS < 250 &&
-          next < totalMs
-        ) {
-          lastMinuteFiredRef.current = minuteJustCompleted;
-          ringBell();
-        }
-        if (next >= totalMs) {
-          setRunning(false);
-          ringBell();
-          return totalMs;
-        }
-        return next;
-      });
+      const next = Math.min(
+        totalMs,
+        anchorRef.current.accumulatedMs + Date.now() - anchorRef.current.startedAt
+      );
+      const minuteJustCompleted = Math.floor(next / MINUTE_MS);
+      if (minuteJustCompleted > lastMinuteFiredRef.current && next < totalMs) {
+        // Rings once even if several boundaries passed while backgrounded
+        lastMinuteFiredRef.current = minuteJustCompleted;
+        ringBell();
+      }
+      if (next >= totalMs) {
+        anchorRef.current.accumulatedMs = totalMs;
+        setRunning(false);
+        ringBell();
+      }
+      setElapsedMs(next);
     }, 250);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -108,19 +109,27 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
   const handleStartPause = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (elapsedMs >= totalMs) {
+      anchorRef.current = { accumulatedMs: 0, startedAt: Date.now() };
+      lastMinuteFiredRef.current = 0;
       setElapsedMs(0);
-      lastMinuteFiredRef.current = -1;
       setRunning(true);
+    } else if (running) {
+      anchorRef.current.accumulatedMs += Date.now() - anchorRef.current.startedAt;
+      setElapsedMs(anchorRef.current.accumulatedMs);
+      setRunning(false);
     } else {
-      setRunning((r) => !r);
+      anchorRef.current.startedAt = Date.now();
+      lastMinuteFiredRef.current = Math.floor(elapsedMs / MINUTE_MS);
+      setRunning(true);
     }
   };
 
   const handleReset = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setRunning(false);
+    anchorRef.current = { accumulatedMs: 0, startedAt: 0 };
     setElapsedMs(0);
-    lastMinuteFiredRef.current = -1;
+    lastMinuteFiredRef.current = 0;
   };
 
   const adjustDuration = (amount: number) => {

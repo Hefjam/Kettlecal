@@ -18,6 +18,10 @@ interface RestTimerProps {
 
 export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
   const [remaining, setRemaining] = useState(seconds);
+  // JS timers pause while the app is backgrounded/locked, so remaining time is
+  // derived from a wall-clock deadline rather than counting interval ticks.
+  const endsAtRef = useRef(Date.now() + seconds * 1000);
+  const lastShownRef = useRef(seconds);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bgOpacity = useSharedValue(0.1);
 
@@ -40,30 +44,33 @@ export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
   }, [bgOpacity]);
 
   useEffect(() => {
+    endsAtRef.current = Date.now() + seconds * 1000;
+    lastShownRef.current = seconds;
     setRemaining(seconds);
   }, [seconds]);
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          onComplete();
-          return 0;
-        }
-        // Pulse on each tick in the last 10 seconds (warning phase)
-        if (r <= 11) {
+      const r = Math.max(0, Math.ceil((endsAtRef.current - Date.now()) / 1000));
+      if (r !== lastShownRef.current) {
+        lastShownRef.current = r;
+        // Pulse on each displayed second in the last 10 seconds (warning phase)
+        if (r > 0 && r <= 10) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           pulse();
         }
-        return r - 1;
-      });
-    }, 1000);
+        setRemaining(r);
+      }
+      if (r <= 0) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onComplete();
+      }
+    }, 250);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [onComplete, pulse]);
+  }, [seconds, onComplete, pulse]);
 
   const minutes = Math.floor(remaining / 60);
   const secs = remaining % 60;
