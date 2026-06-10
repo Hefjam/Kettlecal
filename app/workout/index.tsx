@@ -38,6 +38,46 @@ export default function WorkoutScreen() {
   const { addSession } = useWorkoutHistory();
   const [emomVisible, setEmomVisible] = useState(false);
   const leavingRef = useRef(false);
+  // Tracks whether we've already shown the resume prompt this mount.
+  const hasPromptedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasPromptedRef.current) return;
+    hasPromptedRef.current = true;
+    // Prompt only for a stale persisted session (from a previous app run).
+    // A freshly-started session will have startedAt within the last few seconds;
+    // a persisted one will be older. 10 s is a generous threshold.
+    const staleSession = useActiveSession.getState().session;
+    if (!staleSession || staleSession.isCompleted) return;
+    const ageMs = Date.now() - new Date(staleSession.startedAt).getTime();
+    if (ageMs < 10_000) return; // just started — no prompt
+    if (Platform.OS === 'web') {
+      const resume = window.confirm('Resume your unfinished workout?');
+      if (!resume) {
+        leavingRef.current = true;
+        abandonWorkout();
+        router.replace('/');
+      }
+    } else {
+      Alert.alert(
+        'Resume workout?',
+        'You have an unfinished workout.',
+        [
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => {
+              leavingRef.current = true;
+              abandonWorkout();
+              router.replace('/');
+            },
+          },
+          { text: 'Continue', style: 'default' },
+        ]
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Active workout clock ticker
   const [secondsElapsed, setSecondsElapsed] = useState(0);
