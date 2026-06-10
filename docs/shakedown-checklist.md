@@ -1,0 +1,67 @@
+# S3 On-Device Shakedown Checklist
+
+_Scripted checklist from the wave plan (S3). Run on the sideloaded EAS preview APK, on real hardware, untethered (no Metro, airplane mode for at least one pass). Mark each item ✅/❌ with a one-line note. Anything non-blocking goes to the deferred list, not into the wave._
+
+**Build under test:** `eas build -p android --profile preview` — version: ______ · date: ______ · device: ______
+
+## 1. Install & cold start
+
+- [ ] APK sideloads and installs without warnings beyond the normal unknown-sources prompt
+- [ ] Cold start reaches the Coach tab with no crash, no red screen, no blank screen
+- [ ] App icon and name look right on the launcher
+- [ ] Airplane mode on → relaunch → app fully functional (offline-first claim)
+
+## 2. Kill-mid-workout / resume (the headline feature)
+
+- [ ] Start today's workout from Coach → log 2 sets via SetLogger
+- [ ] Force-kill the app from the app switcher mid-workout
+- [ ] Relaunch → resume prompt appears
+- [ ] Accept resume → both logged sets are present, current exercise position correct
+- [ ] Repeat once, but decline the resume prompt → session is discarded cleanly, no zombie state
+
+## 3. Locked-screen rest timer ⚠️ (highest-risk unknown — JS timers pause in background)
+
+- [ ] Log a set → rest timer starts → lock the screen for the FULL rest duration → unlock
+  - Does the timer show the correct remaining time (i.e. wall-clock-aware), or did it freeze while locked?
+- [ ] Same test but unlock halfway through — remaining time correct?
+- [ ] Does any alert/sound/vibration fire at rest-end while locked? (Record actual behavior even if none — this calibrates the fix.)
+- [ ] Switch to another app (don't lock) during rest → return → timer state correct
+- **If this fails:** capture exact observed vs expected times in the notes. Fix comes from measurement (expo-notifications scheduled alert or background-aware timestamps) — do not guess.
+
+## 4. EMOM beep + haptics
+
+- [ ] Run an EMOM block: beep fires at each minute boundary (expo-av on real hardware — never tested)
+- [ ] Haptics fire alongside the beep
+- [ ] Beep audible with media volume at a normal level; behavior with phone on silent noted
+- [ ] EMOM timer survives screen-lock for one minute boundary (same risk class as §3)
+
+## 5. Backup round-trip
+
+- [ ] Export backup → JSON file produced via the share sheet
+- [ ] Log one more set (so state differs from the export)
+- [ ] Import the exported JSON → state restores to the export point
+- [ ] History, equipment, coach profile, and rotation all intact after import
+
+## 6. Full fake session end-to-end
+
+- [ ] Complete an entire generated workout start-to-finish (fake reps, real flow)
+- [ ] Completion screen (workout/complete) shows correct summary
+- [ ] Session appears in History with correct date and volume
+- [ ] Progress tab reflects the session (weekly volume groups by local date — UTC fix 7884fab)
+
+## 7. Day-turnover regeneration (next morning)
+
+- [ ] Next calendar day: Coach generates a NEW workout (rotation advanced, yesterday's plan not reused)
+- [ ] Yesterday's completed session still in History
+- [ ] Emphasis/focus day matches catalog v3 per-emphasis focus-day expectations
+
+## 8. Safety invariants (must survive on device)
+
+- [ ] Disclaimers visible in ExerciseCard and on the Coach screen
+- [ ] autoAdjust is OFF by default in settings/profile
+
+## Notes / friction log
+
+_One line per item is enough. These seed the S4–S5 tuning pass and the next-wave list._
+
+-

@@ -1,6 +1,6 @@
 # TODOS
 
-_Current work queue lives in `docs/wave-plan-2026-06-10.md` (S1–S5). State as of 2026-06-10 (this session): S1 committed locally (ui restyle + catalog v3 + gitignore); S2 config committed (`android.package`, `eas.json`). **Blocked on James:** `git push origin main` (sandbox has no GitHub creds), then EAS cloud build needs his Expo login. Next: push → CI green → `eas build -p android --profile preview` → sideload → S3 shakedown._
+_Current work queue lives in `docs/wave-plan-2026-06-10.md` (S1–S5). State as of 2026-06-10 (evening): S1 fully done — pushed, CI green on `main` (after lockfile fix 4946371), Pages live at https://hefjam.github.io/Kettlecal/. S2 config committed. **Blocked on James:** Expo login (`npx eas-cli login`), then `eas build -p android --profile preview` → sideload → S3 shakedown (checklist: `docs/shakedown-checklist.md`)._
 
 ## Open items
 
