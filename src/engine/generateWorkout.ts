@@ -78,10 +78,7 @@ export function generateWorkout(
       !coachProfile.restrictedAutoPickExerciseIds.includes(e.id)
   );
 
-  const chosen =
-    coachProfile.routineMode === 'calisthenics_kb_support'
-      ? chooseSlotWorkout(available, history, trained, emphasis, coachProfile, adjustments)
-      : chooseEmphasisWorkout(available, trained, emphasis);
+  const chosen = chooseSlotWorkout(available, history, trained, emphasis, coachProfile, adjustments);
 
   // Build targets; ladder promotion may repoint a slot to a harder exercise, so
   // dedupe by the FINAL exercise id (keep first).
@@ -141,26 +138,6 @@ export function nextSwapTarget(
     recentLogsFor(history, pool[0].id),
     coachProfile
   );
-}
-
-function chooseEmphasisWorkout(
-  available: Exercise[],
-  trained: Record<string, string>,
-  emphasis: Emphasis
-): Exercise[] {
-  const staleFirst = (a: Exercise, b: Exercise) => compareRecency(a, b, trained);
-  const focusPool = available.filter((e) => e.emphasis.includes(emphasis)).sort(staleFirst);
-  let chosen = focusPool.slice(0, PROGRESSION.maxExercisesPerSession);
-
-  if (chosen.length < PROGRESSION.minExercisesPerSession) {
-    const filler = available
-      .filter((e) => !chosen.includes(e))
-      .sort(staleFirst)
-      .slice(0, PROGRESSION.minExercisesPerSession - chosen.length);
-    chosen = chosen.concat(filler);
-  }
-
-  return chosen;
 }
 
 function chooseSlotWorkout(

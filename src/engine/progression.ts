@@ -132,7 +132,7 @@ function buildKbTarget(
 
   if (shouldHoldForHighEffort(lastLog, coachProfile)) {
     const best = reps.length ? Math.max(...reps) : cfg.repMin;
-    const hold = Math.max(cfg.repMin, best);
+    const hold = best;
     return {
       exerciseId: exercise.id,
       sets: cfg.sets,
@@ -228,7 +228,7 @@ function buildBodyweightTarget(
 
   if (shouldHoldForHighEffort(lastLog, coachProfile)) {
     const best = reps.length ? Math.max(...reps) : cfg.repMin;
-    const hold = Math.max(cfg.repMin, best);
+    const hold = best;
     return {
       exerciseId: exercise.id,
       sets: cfg.sets,
