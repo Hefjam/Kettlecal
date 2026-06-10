@@ -1,6 +1,6 @@
 # TODOS
 
-_Current work queue lives in `docs/wave-plan-2026-06-10.md` (S1–S5). State as of 2026-06-10 (evening): S1 fully done — pushed, CI green on `main` (after lockfile fix 4946371), Pages live at https://hefjam.github.io/Kettlecal/. S2 config committed. **Blocked on James:** Expo login (`npx eas-cli login`), then `eas build -p android --profile preview` → sideload → S3 shakedown (checklist: `docs/shakedown-checklist.md`)._
+_Current work queue lives in `docs/wave-plan-2026-06-10.md` (S1–S5). State as of 2026-06-10 (late evening): S1 done. S2: first EAS preview build **succeeded** (commit ffc5396); build #2 (934bf879, includes wall-clock timer fix 8bc66ec) queued. Web QA round-trip done — SPA-fallback + import bugs found, fixed, re-verified live. Locked-screen timer risk pre-empted in code (timers now wall-clock-based; hardware confirmation still via checklist §3/§4). **Next (James):** sideload build #2 APK → run `docs/shakedown-checklist.md` → S4–S5 field use._
 
 ## Open items
 
