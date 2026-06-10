@@ -11,6 +11,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.hefjam.kettlecal",
       "adaptiveIcon": {
         "backgroundColor": "#0A0E27",
         "foregroundImage": "./assets/android-icon-foreground.png",
