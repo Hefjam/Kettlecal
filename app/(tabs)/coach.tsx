@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -11,6 +11,7 @@ import { Typography } from '../../src/theme/typography';
 import { EXERCISES } from '../../src/data/exercises';
 import { useCoachProfile } from '../../src/stores/useCoachProfile';
 import { useTodayPlan } from '../../src/stores/useTodayPlan';
+import { SynthCard } from '../../src/components/SynthCard';
 import { SessionLength } from '../../src/types';
 
 const LENGTHS: { id: SessionLength; label: string; detail: string }[] = [
@@ -19,11 +20,17 @@ const LENGTHS: { id: SessionLength; label: string; detail: string }[] = [
   { id: 'long', label: 'Long', detail: '6 slots' },
 ];
 
-const PRESS_FAMILY = [
+// All overhead KB work is restricted from auto-pick by default (shoulder-
+// protective; decision 2026-06-10) — grinding presses AND ballistic/loaded
+// overhead. Each is individually toggleable here.
+const OVERHEAD_FAMILY = [
   'kb-press',
   'kb-double-press',
   'kb-clean-press',
   'kb-double-clean-press',
+  'kb-snatch',
+  'kb-turkish-getup',
+  'kb-windmill',
 ];
 
 function CustomSwitch({ active }: { active: boolean }) {
@@ -49,6 +56,10 @@ function CustomSwitch({ active }: { active: boolean }) {
   );
 }
 
+const webBg = Platform.OS === 'web' ? {
+  backgroundImage: `repeating-linear-gradient(45deg, rgba(123,47,247,.10) 0 22px, transparent 22px 44px), repeating-linear-gradient(-45deg, rgba(255,46,136,.07) 0 22px, transparent 22px 44px)`,
+} as any : {};
+
 export default function CoachScreen() {
   const { profile, setSessionLength, toggleRestrictedExercise, setAutoAdjustEnabled } =
     useCoachProfile();
@@ -73,20 +84,20 @@ export default function CoachScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-      <Text style={[Typography.h2, styles.title]}>Coach Settings</Text>
+    <ScrollView style={[styles.container, webBg]} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <Text style={styles.title}>Coach Settings</Text>
       <Text style={[Typography.caption, styles.subtitle]}>
         Calisthenics primary, kettlebells supporting.
       </Text>
 
       <View style={styles.section}>
-        <Text style={[Typography.label, styles.sectionLabel]}>Routine Mode</Text>
-        <View style={styles.modeCard}>
+        <Text style={styles.sectionLabel}>Routine Mode</Text>
+        <SynthCard style={styles.modeCard}>
           <Text style={[Typography.body, { fontWeight: '700' }]}>Calisthenics + KB support</Text>
           <Text style={[Typography.caption, { marginTop: 4, color: Colors.text.secondary }]}>
             Optimized rotation covering vertical/horizontal pulls, push variations, hinges, core, and kettlebell conditioning.
           </Text>
-        </View>
+        </SynthCard>
         <View style={styles.lengthRow}>
           {LENGTHS.map((length) => {
             const active = profile.sessionLength === length.id;
@@ -97,10 +108,10 @@ export default function CoachScreen() {
                 onPress={() => updateLength(length.id)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.lengthLabel, active && styles.activeText]}>
+                <Text style={[styles.lengthLabel, active && styles.activeLengthLabel]}>
                   {length.label}
                 </Text>
-                <Text style={[styles.lengthDetail, active && styles.activeTextDetail]}>
+                <Text style={[styles.lengthDetail, active && styles.activeLengthDetail]}>
                   {length.detail}
                 </Text>
               </TouchableOpacity>
@@ -110,11 +121,11 @@ export default function CoachScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={[Typography.label, styles.sectionLabel]}>Avoid Auto-Pick</Text>
-        <Text style={[Typography.caption, { marginBottom: 10, marginTop: -4 }]}>
+        <Text style={styles.sectionLabel}>Avoid Auto-Pick</Text>
+        <Text style={[Typography.caption, { marginBottom: 10, marginTop: -4, color: Colors.text.secondary }]}>
           Toggle exercises you do not want the coach to automatically program for you.
         </Text>
-        {PRESS_FAMILY.map((id) => {
+        {OVERHEAD_FAMILY.map((id) => {
           const exercise = EXERCISES.find((e) => e.id === id);
           const active = profile.restrictedAutoPickExerciseIds.includes(id);
           return (
@@ -137,7 +148,7 @@ export default function CoachScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={[Typography.label, styles.sectionLabel]}>Auto-Adjust Engine</Text>
+        <Text style={styles.sectionLabel}>Auto-Adjust Engine</Text>
         <TouchableOpacity
           style={[styles.toggleRow, profile.autoAdjust.enabled && styles.toggleRowActive]}
           onPress={updateAutoAdjust}
@@ -148,7 +159,7 @@ export default function CoachScreen() {
             <Text style={[Typography.caption, { marginTop: 4, color: Colors.text.secondary }]}>
               When enabled, the coach adapts: pain 4+ downranks next targets, pain 6+ avoids matching muscle patterns, and RPE 9+ holds progressions.
             </Text>
-            <Text style={[Typography.caption, styles.disclaimer]}>
+            <Text style={styles.disclaimer}>
               ⚠️ Self-tracking, not medical advice. Persistent pain should be evaluated by a healthcare professional.
             </Text>
           </View>
@@ -162,21 +173,27 @@ export default function CoachScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg.primary },
   scroll: { padding: 20, paddingBottom: 40 },
-  title: { marginBottom: 4 },
-  subtitle: { marginBottom: 24 },
+  title: {
+    fontFamily: 'Bungee_400Regular',
+    textTransform: 'uppercase',
+    color: Colors.text.primary,
+    fontSize: 26,
+    marginBottom: 4,
+  },
+  subtitle: { marginBottom: 24, color: Colors.text.secondary },
   section: {
     marginBottom: 28,
   },
   sectionLabel: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.accent.teal,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    fontSize: 13,
     marginBottom: 12,
   },
   modeCard: {
-    backgroundColor: Colors.bg.card,
-    borderRadius: 16,
-    padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
   },
   lengthRow: {
     flexDirection: 'row',
@@ -185,15 +202,16 @@ const styles = StyleSheet.create({
   lengthBtn: {
     flex: 1,
     backgroundColor: Colors.bg.card,
-    borderRadius: 14,
+    borderRadius: 4,
     padding: 14,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    minHeight: 52, // Touch target safety
+    minHeight: 52,
   },
   lengthBtnActive: {
-    backgroundColor: Colors.accent.glow,
+    backgroundColor: 'rgba(255,46,136,0.15)',
     borderColor: Colors.accent.primary,
+    borderRadius: 4,
   },
   lengthLabel: {
     color: Colors.text.primary,
@@ -208,25 +226,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 3,
   },
-  activeText: {
-    color: Colors.accent.primary,
+  activeLengthLabel: {
+    color: Colors.accent.acid,
   },
-  activeTextDetail: {
-    color: Colors.accent.primary,
-    opacity: 0.8,
+  activeLengthDetail: {
+    color: Colors.accent.teal,
   },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.bg.card,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 16,
     marginBottom: 10,
     borderWidth: 1.5,
     borderColor: Colors.border,
   },
   toggleRowActive: {
-    borderColor: Colors.border, // keep clean borders
+    borderColor: Colors.accent.teal,
   },
   switchTrack: {
     width: 44,
@@ -246,6 +263,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: Colors.text.muted,
     fontStyle: 'italic',
-    lineHeight: 14,
+    fontFamily: 'VT323_400Regular',
+    fontSize: 16,
+    lineHeight: 18,
   },
 });

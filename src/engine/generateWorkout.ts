@@ -38,7 +38,7 @@ interface CoachAdjustments {
   avoidPatterns: Set<MovementPattern>;
 }
 
-interface WorkoutSlot {
+export interface WorkoutSlot {
   id: string;
   label: string;
   priority: string[];
@@ -114,7 +114,9 @@ export function nextSwapTarget(
 ) {
   const used = new Set(plan.targets.map((t) => t.exerciseId));
   const current = allExercises.find((e) => e.id === plan.targets[index]?.exerciseId);
-  const slot = current ? slotsForSessionLength(coachProfile.sessionLength).find((s) => s.matches(current)) : undefined;
+  const slot = current
+    ? slotsForSessionLength(coachProfile.sessionLength, plan.emphasis).find((s) => s.matches(current))
+    : undefined;
   const trained = lastTrainedMap(history);
   const adjustments = buildCoachAdjustments(history, coachProfile, allExercises);
   const usable = (e: Exercise) =>
@@ -148,7 +150,7 @@ function chooseSlotWorkout(
   coachProfile: CoachProfile,
   adjustments: CoachAdjustments
 ): Exercise[] {
-  const slots = slotsForSessionLength(coachProfile.sessionLength);
+  const slots = slotsForSessionLength(coachProfile.sessionLength, emphasis);
   const chosen: Exercise[] = [];
   const used = new Set<string>();
 
@@ -175,61 +177,112 @@ function chooseSlotWorkout(
   return chosen;
 }
 
-function slotsForSessionLength(length: SessionLength): WorkoutSlot[] {
+/**
+ * Per-emphasis slot priorities (decision 2026-06-10): the focus rotation used
+ * to be nearly cosmetic — emphasis fit was the 4th tie-break, so the priority
+ * lists produced an identical cold-start plan on all three focus days. Each
+ * slot now leads with exercises that fit the day (strength day → dips/RDL,
+ * conditioning day → swings/push-ups). Selection stays deterministic.
+ *
+ * Main slots only accept `tier: 'main'` exercises so a never-trained accessory
+ * (band work) can't win a main slot on staleness; accessories remain pickable
+ * in the conditioning/accessory slot and Freestyle.
+ */
+export function slotsForSessionLength(length: SessionLength, emphasis: Emphasis): WorkoutSlot[] {
   const pull: WorkoutSlot = {
     id: 'pull',
     label: 'Pull',
-    priority: ['pull-up', 'ring-row', 'chin-up', 'ring-pull-up', 'muscle-up'],
+    priority: byEmphasis(emphasis, {
+      strength: ['pull-up', 'chin-up', 'ring-pull-up', 'ring-row', 'muscle-up'],
+      skill: ['ring-pull-up', 'muscle-up', 'pull-up', 'ring-row', 'chin-up'],
+      conditioning: ['ring-row', 'pull-up', 'chin-up', 'ring-pull-up', 'muscle-up'],
+    }),
     matches: (e) =>
+      isMain(e) &&
       e.category === 'calisthenics' &&
       hasAnyPattern(e, ['vertical_pull', 'horizontal_pull']),
   };
   const push: WorkoutSlot = {
     id: 'push',
     label: 'Push',
-    priority: ['push-up', 'dip', 'ring-push-up', 'pike-push-up', 'ring-dip'],
+    priority: byEmphasis(emphasis, {
+      strength: ['dip', 'ring-dip', 'pike-push-up', 'push-up', 'ring-push-up'],
+      skill: ['ring-push-up', 'ring-dip', 'pike-push-up', 'dip', 'push-up'],
+      conditioning: ['push-up', 'ring-push-up', 'dip', 'pike-push-up', 'ring-dip'],
+    }),
     matches: (e) =>
+      isMain(e) &&
       e.category === 'calisthenics' &&
       hasAnyPattern(e, ['horizontal_push', 'dip', 'vertical_push']),
   };
   const kbSupport: WorkoutSlot = {
     id: 'kb-support',
     label: 'KB support',
-    priority: ['kb-row', 'kb-swing', 'kb-rdl', 'kb-double-swing', 'kb-goblet-squat'],
+    priority: byEmphasis(emphasis, {
+      strength: ['kb-rdl', 'kb-double-row', 'kb-row', 'kb-reverse-lunge', 'kb-double-swing'],
+      skill: ['kb-row', 'kb-rdl', 'kb-reverse-lunge', 'kb-swing', 'kb-double-swing'],
+      conditioning: ['kb-swing', 'kb-double-swing', 'kb-clean', 'kb-row', 'kb-rdl'],
+    }),
     matches: (e) =>
-      e.category === 'kettlebell' && hasAnyPattern(e, ['row', 'hinge', 'swing']),
+      isMain(e) &&
+      e.category === 'kettlebell' &&
+      hasAnyPattern(e, ['row', 'hinge', 'swing', 'lunge']),
   };
   const kbRow: WorkoutSlot = {
     id: 'kb-row',
     label: 'KB row',
-    priority: ['kb-row'],
-    matches: (e) => e.category === 'kettlebell' && hasAnyPattern(e, ['row']),
+    priority: byEmphasis(emphasis, {
+      strength: ['kb-double-row', 'kb-row'],
+      skill: ['kb-row', 'kb-double-row'],
+      conditioning: ['kb-row', 'kb-double-row'],
+    }),
+    matches: (e) => isMain(e) && e.category === 'kettlebell' && hasAnyPattern(e, ['row']),
   };
   const kbHinge: WorkoutSlot = {
     id: 'kb-hinge',
     label: 'KB hinge',
-    priority: ['kb-swing', 'kb-double-swing', 'kb-rdl', 'kb-clean'],
+    priority: byEmphasis(emphasis, {
+      strength: ['kb-rdl', 'kb-double-swing', 'kb-clean', 'kb-swing'],
+      skill: ['kb-clean', 'kb-rdl', 'kb-swing', 'kb-double-swing'],
+      conditioning: ['kb-swing', 'kb-double-swing', 'kb-clean', 'kb-rdl'],
+    }),
     matches: (e) =>
-      e.category === 'kettlebell' && hasAnyPattern(e, ['swing', 'hinge']),
+      isMain(e) && e.category === 'kettlebell' && hasAnyPattern(e, ['swing', 'hinge']),
   };
   const coreSkill: WorkoutSlot = {
     id: 'core-skill',
     label: 'Core / skill',
-    priority: ['hollow-body', 'hanging-knee-raise', 'l-sit', 'toes-to-bar', 'pistol-squat'],
-    matches: (e) => hasAnyPattern(e, ['core']) || e.emphasis.includes('skill'),
+    priority: byEmphasis(emphasis, {
+      strength: ['l-sit', 'toes-to-bar', 'pistol-squat', 'hanging-leg-raise', 'hollow-body'],
+      skill: ['hollow-body', 'ring-assisted-pistol', 'l-sit', 'hanging-leg-raise', 'toes-to-bar'],
+      conditioning: ['hanging-knee-raise', 'side-plank', 'hollow-body', 'hanging-leg-raise', 'toes-to-bar'],
+    }),
+    matches: (e) => isMain(e) && (hasAnyPattern(e, ['core']) || e.emphasis.includes('skill')),
   };
   const conditioning: WorkoutSlot = {
     id: 'conditioning-accessory',
     label: 'Conditioning / accessory',
-    priority: ['band-pull-apart', 'squat', 'hanging-knee-raise', 'kb-swing', 'kb-double-swing'],
+    priority: byEmphasis(emphasis, {
+      strength: ['kb-farmer-carry', 'kb-suitcase-carry', 'squat', 'kb-swing', 'band-pull-apart'],
+      skill: ['kb-suitcase-carry', 'side-plank', 'squat', 'band-face-pull', 'kb-swing'],
+      conditioning: ['kb-swing', 'kb-farmer-carry', 'squat', 'push-up', 'kb-double-swing'],
+    }),
     matches: (e) =>
       e.emphasis.includes('conditioning') &&
-      (e.category === 'calisthenics' || hasAnyPattern(e, ['swing', 'hinge'])),
+      (e.category === 'calisthenics' || hasAnyPattern(e, ['swing', 'hinge', 'carry'])),
   };
 
   if (length === 'short') return [pull, push, kbSupport, coreSkill];
   if (length === 'long') return [pull, push, kbRow, kbHinge, coreSkill, conditioning];
   return [pull, push, kbSupport, coreSkill, conditioning];
+}
+
+function byEmphasis(emphasis: Emphasis, lists: Record<Emphasis, string[]>): string[] {
+  return lists[emphasis];
+}
+
+function isMain(exercise: Exercise): boolean {
+  return (exercise.tier ?? 'main') === 'main';
 }
 
 function buildCoachAdjustments(

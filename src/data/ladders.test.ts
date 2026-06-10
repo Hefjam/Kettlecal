@@ -26,12 +26,37 @@ describe('full ladder coverage (v2)', () => {
     });
   });
 
-  describe('core-reps chain: hanging-knee-raise → toes-to-bar', () => {
-    it('hanging-knee-raise promotes to toes-to-bar', () => {
-      expect(rung('hanging-knee-raise')).toBe('toes-to-bar');
+  describe('core-reps chain: hanging-knee-raise → hanging-leg-raise → toes-to-bar', () => {
+    it('hanging-knee-raise promotes to hanging-leg-raise', () => {
+      expect(rung('hanging-knee-raise')).toBe('hanging-leg-raise');
+    });
+    it('hanging-leg-raise promotes to toes-to-bar', () => {
+      expect(rung('hanging-leg-raise')).toBe('toes-to-bar');
     });
     it('toes-to-bar is the top of its chain', () => {
       expect(rung('toes-to-bar')).toBeUndefined();
+    });
+  });
+
+  describe('legs chain: squat → ring-assisted-pistol → pistol-squat', () => {
+    it('squat promotes to ring-assisted-pistol when rings are owned', () => {
+      expect(rung('squat')).toBe('ring-assisted-pistol');
+    });
+    it('ring-assisted-pistol promotes to pistol-squat', () => {
+      expect(rung('ring-assisted-pistol')).toBe('pistol-squat');
+    });
+    it('squat does NOT promote without rings (no rung-skipping)', () => {
+      const noRings: UserEquipment = { items: ['bodyweight'], kettlebells: [] };
+      expect(rung('squat', noRings)).toBeUndefined();
+    });
+  });
+
+  describe('row chain: kb-row → kb-double-row', () => {
+    it('kb-row promotes to kb-double-row', () => {
+      expect(rung('kb-row')).toBe('kb-double-row');
+    });
+    it('kb-double-row is the top of its chain', () => {
+      expect(rung('kb-double-row')).toBeUndefined();
     });
   });
 

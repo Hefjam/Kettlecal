@@ -69,8 +69,15 @@ describe('fixed-KB progression', () => {
   });
 
   it('hit ceiling, no heavier KB and no ladder rung → volume creep', () => {
+    // kb-rdl is deliberately standalone (no chain in LADDERS).
+    const t = T('kb-rdl', log('kb-rdl', [set(8, 24), set(8, 24), set(8, 24), set(8, 24), set(8, 24)]));
+    expect(t).toMatchObject({ exerciseId: 'kb-rdl', weightKg: 24, targetReps: 9 });
+  });
+
+  it('row chain (v3): kb-row at the top KB ceiling promotes to kb-double-row', () => {
     const t = T('kb-row', log('kb-row', [set(8, 24), set(8, 24), set(8, 24), set(8, 24), set(8, 24)]));
-    expect(t).toMatchObject({ exerciseId: 'kb-row', weightKg: 24, targetReps: 9 });
+    expect(t.exerciseId).toBe('kb-double-row');
+    expect(t.reason).toMatch(/Leveled up/);
   });
 
   it('CONFLICT: heavier KB AND ladder rung → weight-jump BEFORE ladder', () => {

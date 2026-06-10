@@ -2,6 +2,14 @@ import { Exercise } from '../types';
 
 // emphasis tags drive the coach's day-to-day focus rotation (strength / skill /
 // conditioning). They are a tuning knob — adjust by feel after real sessions.
+//
+// Tagging rules (audited 2026-06-10, enforced by exercises.test.ts):
+// - `core` is a movement PATTERN only where anti-flexion/anti-rotation or
+//   instability is a limiting factor (dedicated core moves, single-bell
+//   overhead, ring work, get-up, suitcase carry). Ballistic hinges (swings)
+//   work the core but are not limited by it → core in muscleGroups only.
+// - muscleGroups are granular (no 'full-body' catch-all) and typed.
+// - tier: 'accessory' marks prehab/band work that must not occupy a main slot.
 export const EXERCISES: Exercise[] = [
   // ── Calisthenics: Pull ──────────────────────────────────────
   {
@@ -30,8 +38,8 @@ export const EXERCISES: Exercise[] = [
     id: 'muscle-up',
     name: 'Muscle-Up',
     category: 'calisthenics',
-    muscleGroups: ['back', 'chest', 'triceps'],
-    movementPatterns: ['vertical_pull', 'dip', 'full_body'],
+    muscleGroups: ['back', 'chest', 'shoulders', 'triceps'],
+    movementPatterns: ['vertical_pull', 'dip'],
     type: 'reps',
     equipment: ['pull-up-bar'],
     defaultRestSeconds: 120,
@@ -63,12 +71,25 @@ export const EXERCISES: Exercise[] = [
     id: 'band-pull-apart',
     name: 'Band Pull-Apart',
     category: 'calisthenics',
-    muscleGroups: ['shoulders', 'upper-back'],
+    muscleGroups: ['shoulders', 'back'],
     movementPatterns: ['horizontal_pull'],
     type: 'reps',
     equipment: ['bands'],
     defaultRestSeconds: 45,
     emphasis: ['conditioning'],
+    tier: 'accessory',
+  },
+  {
+    id: 'band-face-pull',
+    name: 'Band Face Pull',
+    category: 'calisthenics',
+    muscleGroups: ['shoulders', 'back'],
+    movementPatterns: ['horizontal_pull'],
+    type: 'reps',
+    equipment: ['bands'],
+    defaultRestSeconds: 45,
+    emphasis: ['conditioning'],
+    tier: 'accessory',
   },
   // ── Calisthenics: Push ──────────────────────────────────────
   {
@@ -161,6 +182,17 @@ export const EXERCISES: Exercise[] = [
     emphasis: ['skill', 'conditioning'],
   },
   {
+    id: 'hanging-leg-raise',
+    name: 'Hanging Leg Raise',
+    category: 'calisthenics',
+    muscleGroups: ['core', 'hip-flexors'],
+    movementPatterns: ['core'],
+    type: 'reps',
+    equipment: ['pull-up-bar'],
+    defaultRestSeconds: 60,
+    emphasis: ['skill', 'conditioning'],
+  },
+  {
     id: 'toes-to-bar',
     name: 'Toes to Bar',
     category: 'calisthenics',
@@ -184,6 +216,28 @@ export const EXERCISES: Exercise[] = [
     emphasis: ['conditioning'],
   },
   {
+    id: 'split-squat',
+    name: 'Split Squat',
+    category: 'calisthenics',
+    muscleGroups: ['quads', 'glutes'],
+    movementPatterns: ['lunge'],
+    type: 'reps',
+    equipment: ['bodyweight'],
+    defaultRestSeconds: 60,
+    emphasis: ['conditioning', 'strength'],
+  },
+  {
+    id: 'ring-assisted-pistol',
+    name: 'Ring-Assisted Pistol Squat',
+    category: 'calisthenics',
+    muscleGroups: ['quads', 'glutes', 'core'],
+    movementPatterns: ['squat'],
+    type: 'reps',
+    equipment: ['gymnastics-rings'],
+    defaultRestSeconds: 90,
+    emphasis: ['skill'],
+  },
+  {
     id: 'pistol-squat',
     name: 'Pistol Squat',
     category: 'calisthenics',
@@ -193,6 +247,28 @@ export const EXERCISES: Exercise[] = [
     equipment: ['bodyweight'],
     defaultRestSeconds: 90,
     emphasis: ['skill', 'strength'],
+  },
+  {
+    id: 'glute-bridge',
+    name: 'Glute Bridge',
+    category: 'calisthenics',
+    muscleGroups: ['glutes', 'hamstrings'],
+    movementPatterns: ['hinge'],
+    type: 'reps',
+    equipment: ['bodyweight'],
+    defaultRestSeconds: 45,
+    emphasis: ['conditioning'],
+  },
+  {
+    id: 'side-plank',
+    name: 'Side Plank',
+    category: 'calisthenics',
+    muscleGroups: ['core'],
+    movementPatterns: ['core'],
+    type: 'time',
+    equipment: ['bodyweight'],
+    defaultRestSeconds: 45,
+    emphasis: ['conditioning'],
   },
   // ── Kettlebell ──────────────────────────────────────────────
   {
@@ -265,7 +341,7 @@ export const EXERCISES: Exercise[] = [
     id: 'kb-clean-press',
     name: 'KB Clean & Press',
     category: 'kettlebell',
-    muscleGroups: ['full-body'],
+    muscleGroups: ['glutes', 'hamstrings', 'shoulders', 'triceps', 'core'],
     movementPatterns: ['hinge', 'clean', 'press', 'vertical_push', 'full_body'],
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
@@ -276,7 +352,7 @@ export const EXERCISES: Exercise[] = [
     id: 'kb-double-clean-press',
     name: 'Double KB Clean & Press',
     category: 'kettlebell',
-    muscleGroups: ['full-body'],
+    muscleGroups: ['glutes', 'hamstrings', 'shoulders', 'triceps', 'core'],
     movementPatterns: ['hinge', 'clean', 'press', 'vertical_push', 'full_body'],
     type: 'reps',
     equipment: ['kettlebell-24kg'],
@@ -331,7 +407,7 @@ export const EXERCISES: Exercise[] = [
     id: 'kb-turkish-getup',
     name: 'Turkish Get-Up',
     category: 'kettlebell',
-    muscleGroups: ['full-body', 'core', 'shoulders'],
+    muscleGroups: ['shoulders', 'core', 'glutes'],
     movementPatterns: ['getup', 'vertical_push', 'core', 'full_body'],
     type: 'reps',
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
@@ -348,6 +424,67 @@ export const EXERCISES: Exercise[] = [
     equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
     defaultRestSeconds: 60,
     emphasis: ['strength'],
+  },
+  {
+    // Needs a PAIR of 24s in practice; the equipment model can't express
+    // quantity yet (see F7 in docs/exercise-db-audit-2026-06-10.md).
+    id: 'kb-double-row',
+    name: 'Double KB Bent-Over Row',
+    category: 'kettlebell',
+    muscleGroups: ['back', 'biceps'],
+    movementPatterns: ['row', 'horizontal_pull'],
+    type: 'reps',
+    equipment: ['kettlebell-24kg'],
+    defaultRestSeconds: 90,
+    emphasis: ['strength'],
+  },
+  {
+    id: 'kb-reverse-lunge',
+    name: 'KB Goblet Reverse Lunge',
+    category: 'kettlebell',
+    muscleGroups: ['quads', 'glutes'],
+    movementPatterns: ['lunge'],
+    type: 'reps',
+    equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
+    defaultRestSeconds: 60,
+    emphasis: ['strength'],
+  },
+  {
+    // Pair of 24s (see kb-double-row note on quantity).
+    id: 'kb-farmer-carry',
+    name: 'KB Farmer Carry',
+    category: 'kettlebell',
+    muscleGroups: ['grip', 'traps', 'core'],
+    movementPatterns: ['carry'],
+    type: 'time',
+    equipment: ['kettlebell-24kg'],
+    defaultRestSeconds: 60,
+    emphasis: ['conditioning', 'strength'],
+  },
+  {
+    // Single bell, one side loaded: anti-lateral-flexion is the limiter → core
+    // is a pattern here (per the header rule), unlike the two-handed carry.
+    id: 'kb-suitcase-carry',
+    name: 'KB Suitcase Carry',
+    category: 'kettlebell',
+    muscleGroups: ['grip', 'core', 'traps'],
+    movementPatterns: ['carry', 'core'],
+    type: 'time',
+    equipment: ['kettlebell-20kg', 'kettlebell-24kg'],
+    defaultRestSeconds: 60,
+    emphasis: ['conditioning'],
+  },
+  {
+    // Overhead → in the default restricted list with snatch/get-up.
+    id: 'kb-windmill',
+    name: 'KB Windmill',
+    category: 'kettlebell',
+    muscleGroups: ['core', 'shoulders', 'hamstrings'],
+    movementPatterns: ['hinge', 'core', 'vertical_push'],
+    type: 'reps',
+    equipment: ['kettlebell-20kg'],
+    defaultRestSeconds: 90,
+    emphasis: ['skill'],
   },
   {
     id: 'kb-emom-swing',

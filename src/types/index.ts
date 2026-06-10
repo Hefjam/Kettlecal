@@ -47,6 +47,7 @@ export type MovementPattern =
   | 'vertical_push'
   | 'core'
   | 'squat'
+  | 'lunge'
   | 'hinge'
   | 'swing'
   | 'clean'
@@ -54,7 +55,27 @@ export type MovementPattern =
   | 'row'
   | 'getup'
   | 'snatch'
+  | 'carry'
   | 'full_body';
+
+/**
+ * Typed muscle groups (was string[], which let drift like 'upper-back' vs
+ * 'back' and the uninformative 'full-body' creep in unchecked). Display-only
+ * today, but typed so any future muscle-based view starts from clean data.
+ */
+export type MuscleGroup =
+  | 'back'
+  | 'biceps'
+  | 'chest'
+  | 'triceps'
+  | 'shoulders'
+  | 'core'
+  | 'hip-flexors'
+  | 'quads'
+  | 'glutes'
+  | 'hamstrings'
+  | 'grip'
+  | 'traps';
 
 export interface CoachProfile {
   routineMode: RoutineMode;
@@ -72,11 +93,19 @@ export interface CoachProfile {
 export const DEFAULT_COACH_PROFILE: CoachProfile = {
   routineMode: 'calisthenics_kb_support',
   sessionLength: 'standard',
+  // Shoulder-protective default: ALL overhead work is opt-in via the Coach tab —
+  // grinding presses AND ballistic/loaded overhead (snatch, get-up, windmill).
+  // Decision 2026-06-10: the old list restricted presses only, which left the
+  // more aggressive ballistic overhead auto-pickable; that inconsistency is
+  // resolved toward caution. Freestyle mode still allows everything.
   restrictedAutoPickExerciseIds: [
     'kb-press',
     'kb-double-press',
     'kb-clean-press',
     'kb-double-clean-press',
+    'kb-snatch',
+    'kb-turkish-getup',
+    'kb-windmill',
   ],
   autoAdjust: {
     // Opt-in by default: the coach never silently routes around self-reported
@@ -116,11 +145,18 @@ export interface Exercise {
   id: string;
   name: string;
   category: 'calisthenics' | 'kettlebell';
-  muscleGroups: string[];
+  muscleGroups: MuscleGroup[];
   movementPatterns: MovementPattern[];
   type: 'reps' | 'time' | 'emom';
   equipment: EquipmentItem[];
   defaultRestSeconds: number;
+  /**
+   * Slot eligibility. 'accessory' (prehab/band work) is excluded from the main
+   * slots (pull/push/KB/core) so a never-trained accessory can't win a main
+   * slot on staleness — it remains pickable in the conditioning/accessory slot
+   * and Freestyle. Absent = 'main'.
+   */
+  tier?: 'main' | 'accessory';
   /**
    * Which training focuses this exercise serves. The coach rotates emphasis
    * day to day and selects exercises whose `emphasis` includes today's focus.

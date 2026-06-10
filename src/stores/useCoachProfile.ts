@@ -46,7 +46,24 @@ export const useCoachProfile = create<CoachProfileState>()(
     {
       name: 'coach-profile',
       storage: createJSONStorage(() => mmkvStorage),
-      version: 1,
+      version: 2,
+      // v1 → v2 (2026-06-10): the shoulder-protective default grew from
+      // presses-only to ALL overhead (snatch, get-up, windmill). Union the new
+      // ids into an existing profile so the safer default reaches installs
+      // that predate it. The user can still toggle them back off in the Coach
+      // tab — the migration runs once, so that choice persists.
+      migrate: (persisted, version) => {
+        if (version < 2 && persisted && typeof persisted === 'object') {
+          const state = persisted as { profile?: { restrictedAutoPickExerciseIds?: string[] } };
+          if (state.profile) {
+            const existing = state.profile.restrictedAutoPickExerciseIds ?? [];
+            state.profile.restrictedAutoPickExerciseIds = Array.from(
+              new Set([...existing, 'kb-snatch', 'kb-turkish-getup', 'kb-windmill'])
+            );
+          }
+        }
+        return persisted;
+      },
       // Rehydrating a profile saved by an older build can be missing fields the
       // engine reads (e.g. a newly added autoAdjust knob). Merge over defaults
       // so generation never hits an undefined nested field.

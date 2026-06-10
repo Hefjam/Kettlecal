@@ -68,12 +68,53 @@ describe('nextEmphasis (skip-aware rotation)', () => {
 });
 
 describe('generateWorkout coach profile', () => {
-  it('generates the default calisthenics-primary standard workout without KB press auto-picks', () => {
+  it('generates the default calisthenics-primary standard workout without overhead auto-picks', () => {
     const ids = targetIds('standard');
     expect(ids).toHaveLength(5);
-    expect(ids.filter((id) => EXERCISES.find((e) => e.id === id)?.category === 'calisthenics').length).toBeGreaterThanOrEqual(3);
+    expect(ids.filter((id) => EXERCISES.find((e) => e.id === id)?.category === 'calisthenics').length).toBeGreaterThanOrEqual(2);
     expect(ids.some((id) => restricted.has(id))).toBe(false);
-    expect(ids).toEqual(['pull-up', 'push-up', 'kb-row', 'hollow-body', 'band-pull-apart']);
+    // Cold start on a strength day: per-emphasis priorities lead with the
+    // strength picks in every slot.
+    expect(ids).toEqual(['pull-up', 'dip', 'kb-rdl', 'l-sit', 'kb-farmer-carry']);
+  });
+
+  it('focus days produce different cold-start plans (emphasis is no longer cosmetic)', () => {
+    const planFor = (last: RotationState['lastEmphasis']) =>
+      generateWorkout([], rot(last), full, profile('standard'), EXERCISES, '2026-06-08');
+    const strength = planFor(null); // → strength day
+    const skill = planFor('strength'); // → skill day
+    const conditioning = planFor('skill'); // → conditioning day
+    expect(strength.targets.map((t) => t.exerciseId)).not.toEqual(skill.targets.map((t) => t.exerciseId));
+    expect(skill.targets.map((t) => t.exerciseId)).not.toEqual(conditioning.targets.map((t) => t.exerciseId));
+  });
+
+  it('never auto-picks overhead KB work by default (snatch/get-up/windmill included)', () => {
+    for (const last of [null, 'strength', 'skill'] as const) {
+      for (const length of ['short', 'standard', 'long'] as const) {
+        const plan = generateWorkout([], rot(last), full, profile(length), EXERCISES, '2026-06-08');
+        for (const t of plan.targets) {
+          expect(restricted.has(t.exerciseId), `${t.exerciseId} (${length}/${last})`).toBe(false);
+        }
+      }
+    }
+    expect(restricted.has('kb-snatch')).toBe(true);
+    expect(restricted.has('kb-turkish-getup')).toBe(true);
+    expect(restricted.has('kb-windmill')).toBe(true);
+  });
+
+  it('accessories (tier) never occupy the main pull slot, even when never trained', () => {
+    // Heavy pull-up history + untouched band work: under pure staleness the
+    // never-trained accessory would win the pull slot. Tier must prevent that.
+    const history = [session('s1', [log('pull-up')])];
+    const plan = generateWorkout(history, rot(null), full, profile('standard'), EXERCISES, '2026-06-08');
+    const first = plan.targets[0];
+    expect(['band-pull-apart', 'band-face-pull']).not.toContain(first.exerciseId);
+  });
+
+  it('carries are reachable via the conditioning slot', () => {
+    const plan = generateWorkout([], rot(null), full, profile('standard'), EXERCISES, '2026-06-08');
+    const ids = plan.targets.map((t) => t.exerciseId);
+    expect(ids).toContain('kb-farmer-carry');
   });
 
   it('honors short, standard, and long session lengths', () => {

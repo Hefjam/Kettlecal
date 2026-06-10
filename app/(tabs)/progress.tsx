@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Colors } from '../../src/theme/colors';
 import { Typography } from '../../src/theme/typography';
 import { useWorkoutHistory } from '../../src/stores/useWorkoutHistory';
 import { EXERCISES } from '../../src/data/exercises';
 import { MovementPattern, WorkoutSession } from '../../src/types';
+import { SynthCard } from '../../src/components/SynthCard';
 
 const PATTERN_LABELS: Record<MovementPattern, string> = {
   vertical_pull: 'Vertical pull',
@@ -14,6 +15,7 @@ const PATTERN_LABELS: Record<MovementPattern, string> = {
   vertical_push: 'Vertical push',
   core: 'Core',
   squat: 'Squat',
+  lunge: 'Lunge',
   hinge: 'Hinge',
   swing: 'Swing',
   clean: 'Clean',
@@ -21,8 +23,13 @@ const PATTERN_LABELS: Record<MovementPattern, string> = {
   row: 'Rows',
   getup: 'Get-up',
   snatch: 'Snatch',
+  carry: 'Carry',
   full_body: 'Full body',
 };
+
+const webBg = Platform.OS === 'web' ? {
+  backgroundImage: `repeating-linear-gradient(45deg, rgba(123,47,247,.10) 0 22px, transparent 22px 44px), repeating-linear-gradient(-45deg, rgba(255,46,136,.07) 0 22px, transparent 22px 44px)`,
+} as any : {};
 
 export default function ProgressScreen() {
   const { sessions, getPersonalRecords, getWeeklyVolume } = useWorkoutHistory();
@@ -34,25 +41,25 @@ export default function ProgressScreen() {
   const recentPain = recentPainFlags(sessions);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
+    <ScrollView style={[styles.container, webBg]} contentContainerStyle={styles.scroll}>
       {/* Streak */}
-      <View style={styles.streakCard}>
+      <SynthCard variant="cal" style={styles.streakCard}>
         <Text style={{ fontSize: 36 }}>🔥</Text>
         <View style={{ marginLeft: 16 }}>
-          <Text style={[Typography.monoLarge, { color: Colors.accent.primary }]}>{streak}</Text>
-          <Text style={Typography.caption}>day streak</Text>
+          <Text style={styles.streakNumber}>{streak}</Text>
+          <Text style={styles.streakLabel}>day streak</Text>
         </View>
         <View style={{ marginLeft: 'auto' }}>
-          <Text style={[Typography.mono, { color: Colors.text.secondary }]}>{sessions.length}</Text>
-          <Text style={Typography.caption}>total sessions</Text>
+          <Text style={styles.sessionCount}>{sessions.length}</Text>
+          <Text style={[Typography.caption, { color: Colors.text.secondary }]}>total sessions</Text>
         </View>
-      </View>
+      </SynthCard>
 
       {/* Volume chart */}
-      <Text style={[Typography.label, { marginBottom: 12 }]}>Volume (last 14 days)</Text>
-      <View style={styles.chart}>
+      <Text style={styles.sectionLabel}>Volume (last 14 days)</Text>
+      <SynthCard style={styles.chartCard}>
         {volume.length === 0 ? (
-          <Text style={[Typography.caption, { textAlign: 'center', padding: 24 }]}>
+          <Text style={[Typography.caption, { textAlign: 'center', padding: 24, color: Colors.text.secondary }]}>
             No data yet — complete a workout to see volume.
           </Text>
         ) : (
@@ -64,7 +71,7 @@ export default function ProgressScreen() {
                   <View style={styles.barTrack}>
                     <View style={[styles.bar, { height: `${heightPct}%` as any }]} />
                   </View>
-                  <Text style={[Typography.caption, styles.barLabel]}>
+                  <Text style={styles.barLabel}>
                     {new Date(v.date).getDate()}
                   </Text>
                 </View>
@@ -72,10 +79,11 @@ export default function ProgressScreen() {
             })}
           </View>
         )}
-      </View>
+      </SynthCard>
 
-      <Text style={[Typography.label, { marginBottom: 12 }]}>Movement Balance (7 days)</Text>
-      <View style={styles.patternCard}>
+      {/* Movement balance */}
+      <Text style={styles.sectionLabel}>Movement Balance (7 days)</Text>
+      <SynthCard style={styles.patternCard}>
         {patternBalance.length === 0 ? (
           <Text style={[Typography.caption, { color: Colors.text.secondary }]}>
             Movement balance appears after logged sets.
@@ -83,19 +91,20 @@ export default function ProgressScreen() {
         ) : (
           patternBalance.map((item) => (
             <View key={item.pattern} style={styles.patternRow}>
-              <Text style={[Typography.caption, { flex: 1 }]}>
+              <Text style={[Typography.caption, { flex: 1, color: Colors.text.primary }]}>
                 {PATTERN_LABELS[item.pattern]}
               </Text>
               <View style={styles.patternTrack}>
                 <View style={[styles.patternBar, { width: `${item.widthPct}%` as any }]} />
               </View>
-              <Text style={[Typography.mono, styles.patternCount]}>{item.sets}</Text>
+              <Text style={styles.patternCount}>{item.sets}</Text>
             </View>
           ))
         )}
-      </View>
+      </SynthCard>
 
-      <Text style={[Typography.label, { marginTop: 24, marginBottom: 12 }]}>Recent Pain Flags</Text>
+      {/* Pain flags */}
+      <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Recent Pain Flags</Text>
       {recentPain.length === 0 ? (
         <Text style={[Typography.caption, { color: Colors.text.muted }]}>
           Pain you log (4+) shows here. Turn on Auto-Adjust in Coach to have it shape your plan.
@@ -105,7 +114,7 @@ export default function ProgressScreen() {
           <View key={`${flag.sessionId}-${flag.exerciseId}`} style={styles.painRow}>
             <View style={{ flex: 1 }}>
               <Text style={Typography.body}>{flag.exerciseName}</Text>
-              <Text style={[Typography.caption, { marginTop: 2 }]}>
+              <Text style={[Typography.caption, { marginTop: 2, color: Colors.text.secondary }]}>
                 {flag.date}
                 {flag.rpe != null ? ` · RPE ${flag.rpe}` : ''}
               </Text>
@@ -116,7 +125,7 @@ export default function ProgressScreen() {
       )}
 
       {/* PRs */}
-      <Text style={[Typography.label, { marginTop: 24, marginBottom: 12 }]}>Personal Records</Text>
+      <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Personal Records</Text>
       {Object.keys(prs).length === 0 ? (
         <Text style={[Typography.caption, { color: Colors.text.muted }]}>
           PRs will appear after your first workout.
@@ -215,29 +224,42 @@ function computeStreak(dates: string[]): number {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg.primary },
   scroll: { padding: 20, paddingBottom: 40 },
+  sectionLabel: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.accent.teal,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    fontSize: 13,
+    marginBottom: 12,
+  },
   streakCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.bg.card,
-    borderRadius: 20,
-    padding: 20,
     marginBottom: 24,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    shadowColor: Colors.accent.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
   },
-  chart: {
-    backgroundColor: Colors.bg.card,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    padding: 16,
+  streakNumber: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 72,
+    color: Colors.accent.acid,
+    lineHeight: 72,
+  },
+  streakLabel: {
+    fontFamily: 'Anton_400Regular',
+    color: Colors.text.secondary,
+    fontSize: 14,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  sessionCount: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 36,
+    color: Colors.accent.acid,
+    lineHeight: 36,
+  },
+  chartCard: {
     height: 170,
     marginBottom: 24,
+    padding: 16,
   },
   bars: {
     flex: 1,
@@ -268,16 +290,16 @@ const styles = StyleSheet.create({
     minHeight: 6,
   },
   barLabel: {
+    fontFamily: 'VT323_400Regular',
     marginTop: 6,
-    color: Colors.text.secondary,
-    fontSize: 10,
-    fontWeight: '700',
+    color: Colors.text.muted,
+    fontSize: 14,
   },
   prRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.bg.card,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: Colors.border,
     padding: 14,
@@ -285,22 +307,18 @@ const styles = StyleSheet.create({
   },
   prStats: { flexDirection: 'row', gap: 6 },
   prChip: {
-    backgroundColor: Colors.accent.glow,
-    color: Colors.accent.primary,
+    backgroundColor: 'rgba(255,46,136,0.15)',
+    color: Colors.accent.acid,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 4,
     fontSize: 12,
     fontWeight: '800',
     borderWidth: 1,
-    borderColor: Colors.accent.glowStrong,
+    borderColor: Colors.accent.primary,
   },
   patternCard: {
-    backgroundColor: Colors.bg.card,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    padding: 16,
+    marginBottom: 0,
   },
   patternRow: {
     flexDirection: 'row',
@@ -319,21 +337,21 @@ const styles = StyleSheet.create({
   },
   patternBar: {
     height: '100%',
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: Colors.accent.teal,
     borderRadius: 5,
   },
   patternCount: {
+    fontFamily: 'VT323_400Regular',
     width: 28,
     textAlign: 'right',
     color: Colors.text.primary,
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 18,
   },
   painRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.bg.card,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: Colors.border,
     borderLeftWidth: 4,
@@ -342,11 +360,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   painChip: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    backgroundColor: 'rgba(246,224,94,0.12)',
     color: Colors.status.warning,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 8,
+    borderRadius: 4,
     fontSize: 12,
     fontWeight: '800',
     borderWidth: 1.5,
