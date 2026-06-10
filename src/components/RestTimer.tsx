@@ -20,16 +20,23 @@ interface RestTimerProps {
 export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
   const [remaining, setRemaining] = useState(seconds);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const bgOpacity = useSharedValue(0.4);
+  const bgOpacity = useSharedValue(0.1);
 
   const bgStyle = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(255, 69, 0, ${bgOpacity.value})`,
+    backgroundColor: Colors.bg.card,
+    borderColor: `rgba(255, 94, 58, ${bgOpacity.value * 3.5})`,
+    borderWidth: 1.5,
+    shadowColor: Colors.accent.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: bgOpacity.value,
+    shadowRadius: 10,
+    elevation: 3,
   }));
 
   const pulse = useCallback(() => {
     bgOpacity.value = withSequence(
-      withTiming(0.8, { duration: 150, easing: Easing.out(Easing.quad) }),
-      withTiming(0.4, { duration: 400 })
+      withTiming(0.35, { duration: 180, easing: Easing.out(Easing.quad) }),
+      withTiming(0.1, { duration: 600 })
     );
   }, [bgOpacity]);
 
@@ -46,8 +53,9 @@ export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
           onComplete();
           return 0;
         }
-        if (r === 11) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        // Pulse on each tick in the last 10 seconds (warning phase)
+        if (r <= 11) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           pulse();
         }
         return r - 1;
@@ -66,10 +74,17 @@ export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
 
   return (
     <Animated.View style={[styles.container, bgStyle]}>
-      <Text style={[Typography.label, { color: Colors.text.secondary }]}>REST</Text>
-      <Text style={[Typography.monoLarge, { marginVertical: 4 }]}>{display}</Text>
-      <TouchableOpacity style={styles.skipBtn} onPress={onSkip}>
-        <Text style={[Typography.body, { color: Colors.text.secondary }]}>Skip</Text>
+      <Text style={styles.restLabel}>REST TIMER</Text>
+      <Text style={[Typography.monoLarge, styles.timerVal]}>{display}</Text>
+      <TouchableOpacity
+        style={styles.skipBtn}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onSkip();
+        }}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.skipBtnText}>Skip Rest</Text>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -77,16 +92,36 @@ export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     alignItems: 'center',
+    marginVertical: 12,
+  },
+  restLabel: {
+    color: Colors.accent.primary,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  timerVal: {
+    color: Colors.text.primary,
     marginVertical: 8,
+    fontSize: 64,
   },
   skipBtn: {
-    marginTop: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 6,
+    marginTop: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
     backgroundColor: Colors.bg.elevated,
-    borderRadius: 8,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    minHeight: 44, // Touch target safety
+    justifyContent: 'center',
+  },
+  skipBtnText: {
+    color: Colors.text.secondary,
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

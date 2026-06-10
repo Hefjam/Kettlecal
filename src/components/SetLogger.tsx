@@ -62,7 +62,7 @@ export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: S
         <View style={styles.inputRow}>
           {isReps && (
             <View style={styles.inputGroup}>
-              <Text style={Typography.caption}>Reps</Text>
+              <Text style={styles.inputLabel}>Reps</Text>
               <TextInput
                 style={styles.input}
                 value={reps}
@@ -76,7 +76,7 @@ export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: S
           )}
           {hasWeight && (
             <View style={styles.inputGroup}>
-              <Text style={Typography.caption}>kg</Text>
+              <Text style={styles.inputLabel}>kg</Text>
               <TextInput
                 style={styles.input}
                 value={weight}
@@ -90,7 +90,7 @@ export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: S
           )}
           {isTime && (
             <View style={styles.inputGroup}>
-              <Text style={Typography.caption}>Seconds</Text>
+              <Text style={styles.inputLabel}>Seconds</Text>
               <TextInput
                 style={styles.input}
                 value={duration}
@@ -114,49 +114,70 @@ export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: S
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.bg.card,
-    borderRadius: 12,
+    backgroundColor: Colors.bg.secondary,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 16,
     padding: 16,
-    marginVertical: 6,
+    marginVertical: 8,
   },
   setLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.accent.primary,
+    letterSpacing: 0.8,
     marginBottom: 2,
   },
   previous: {
-    marginBottom: 10,
-    color: Colors.text.muted,
+    marginBottom: 12,
+    color: Colors.text.secondary,
+    fontWeight: '600',
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 12,
+    gap: 10,
   },
   inputGroup: {
     flex: 1,
-    gap: 4,
+    gap: 6,
+  },
+  inputLabel: {
+    color: Colors.text.secondary,
+    fontWeight: '700',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   input: {
     backgroundColor: Colors.bg.elevated,
-    borderRadius: 8,
-    height: 44,
-    paddingHorizontal: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    height: 50,
+    paddingHorizontal: 8,
     color: Colors.text.primary,
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     textAlign: 'center',
     fontVariant: ['tabular-nums'],
   },
   logBtn: {
-    width: 52,
-    height: 52,
+    width: 50,
+    height: 50,
     backgroundColor: Colors.accent.primary,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: Colors.accent.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   logBtnText: {
     color: Colors.text.primary,
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '900',
   },
 });

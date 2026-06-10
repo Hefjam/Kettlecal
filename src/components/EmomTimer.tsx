@@ -107,6 +107,7 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
   }, [running, totalMs, ringBell]);
 
   const handleStartPause = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (elapsedMs >= totalMs) {
       setElapsedMs(0);
       lastMinuteFiredRef.current = -1;
@@ -117,9 +118,15 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
   };
 
   const handleReset = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setRunning(false);
     setElapsedMs(0);
     lastMinuteFiredRef.current = -1;
+  };
+
+  const adjustDuration = (amount: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTotalMinutes((m) => Math.min(MAX_MINUTES, Math.max(1, m + amount)));
   };
 
   const formatRemaining = () => {
@@ -137,7 +144,7 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
       <View style={styles.sheet}>
         <View style={styles.handle} />
 
-        <Text style={[Typography.label, { textAlign: 'center', marginBottom: 4 }]}>
+        <Text style={[Typography.label, { textAlign: 'center', marginBottom: 4, color: Colors.text.muted }]}>
           EMOM TIMER
         </Text>
 
@@ -145,7 +152,7 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
         <Animated.View style={[styles.bellRow, bellStyle]}>
           <Text style={styles.bellEmoji}>🔔</Text>
           {running && !isDone && (
-            <Text style={[Typography.caption, { color: Colors.accent.primary, marginLeft: 8 }]}>
+            <Text style={[Typography.caption, { color: Colors.accent.primary, marginLeft: 8, fontWeight: '700' }]}>
               min {currentMinute + 1} · next in {secondsLeftInMinute}s
             </Text>
           )}
@@ -164,18 +171,22 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
         {/* Duration picker */}
         {!running && elapsedMs === 0 && (
           <View style={styles.durationRow}>
-            <Text style={Typography.caption}>Duration</Text>
+            <Text style={[Typography.caption, { fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+              Duration
+            </Text>
             <View style={styles.durationControls}>
               <TouchableOpacity
                 style={styles.durationBtn}
-                onPress={() => setTotalMinutes((m) => Math.max(1, m - 1))}
+                onPress={() => adjustDuration(-1)}
+                activeOpacity={0.7}
               >
                 <Text style={styles.durationBtnText}>−</Text>
               </TouchableOpacity>
-              <Text style={[Typography.mono, { marginHorizontal: 16 }]}>{totalMinutes} min</Text>
+              <Text style={[Typography.mono, { marginHorizontal: 20 }]}>{totalMinutes} min</Text>
               <TouchableOpacity
                 style={styles.durationBtn}
-                onPress={() => setTotalMinutes((m) => Math.min(MAX_MINUTES, m + 1))}
+                onPress={() => adjustDuration(1)}
+                activeOpacity={0.7}
               >
                 <Text style={styles.durationBtnText}>+</Text>
               </TouchableOpacity>
@@ -185,12 +196,17 @@ export function EmomTimer({ visible, onClose }: EmomTimerProps) {
 
         {/* Controls */}
         <View style={styles.controls}>
-          <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
-            <Text style={[Typography.body, { color: Colors.text.secondary }]}>Reset</Text>
+          <TouchableOpacity
+            style={styles.resetBtn}
+            onPress={handleReset}
+            activeOpacity={0.7}
+          >
+            <Text style={[Typography.body, { color: Colors.text.secondary, fontWeight: '700' }]}>Reset</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.primaryBtn, isDone && styles.primaryBtnSuccess]}
             onPress={handleStartPause}
+            activeOpacity={0.85}
           >
             <Text style={styles.primaryBtnText}>
               {isDone ? 'Done! Restart' : running ? 'Pause' : elapsedMs > 0 ? 'Resume' : 'Start'}
@@ -211,6 +227,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bg.secondary,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderBottomWidth: 0,
     padding: 24,
     paddingBottom: 48,
   },
@@ -235,40 +254,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: Colors.accent.primary,
     marginBottom: 16,
+    fontSize: 56,
   },
   progressTrack: {
-    height: 4,
-    backgroundColor: Colors.border,
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: Colors.bg.elevated,
+    borderRadius: 3,
     marginBottom: 24,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.accent.primary,
-    borderRadius: 2,
+    borderRadius: 3,
   },
   durationRow: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   durationControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 10,
   },
   durationBtn: {
-    width: 36,
-    height: 36,
+    width: 44,          // Satisfies the 44x44 minimum touch target size
+    height: 44,         // Satisfies the 44x44 minimum touch target size
     backgroundColor: Colors.bg.elevated,
-    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   durationBtnText: {
     color: Colors.text.primary,
-    fontSize: 20,
-    lineHeight: 22,
+    fontSize: 22,
+    lineHeight: 24,
   },
   controls: {
     flexDirection: 'row',
@@ -278,7 +302,9 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 52,
     backgroundColor: Colors.bg.elevated,
-    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -286,16 +312,23 @@ const styles = StyleSheet.create({
     flex: 2,
     height: 52,
     backgroundColor: Colors.accent.primary,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: Colors.accent.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
   primaryBtnSuccess: {
     backgroundColor: Colors.status.success,
+    shadowColor: Colors.status.success,
   },
   primaryBtnText: {
     color: Colors.text.primary,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.2,
   },
 });

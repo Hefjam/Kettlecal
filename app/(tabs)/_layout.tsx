@@ -9,12 +9,26 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: Colors.bg.secondary,
           borderTopColor: Colors.border,
-          borderTopWidth: 1,
+          borderTopWidth: 1.5,
+          height: 68,
+          paddingTop: 10,
+          paddingBottom: 12,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+          letterSpacing: 0.3,
+          marginTop: 2,
         },
         tabBarActiveTintColor: Colors.accent.primary,
         tabBarInactiveTintColor: Colors.text.muted,
         headerStyle: { backgroundColor: Colors.bg.primary },
         headerTintColor: Colors.text.primary,
+        headerTitleStyle: {
+          fontSize: 22,
+          fontWeight: '800',
+          letterSpacing: -0.4,
+        },
         headerShadowVisible: false,
       }}
     >
@@ -23,7 +37,9 @@ export default function TabsLayout() {
         options={{
           title: 'Today',
           tabBarLabel: 'Today',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏋️</Text>,
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>🏋️</Text>
+          ),
         }}
       />
       <Tabs.Screen
@@ -31,7 +47,9 @@ export default function TabsLayout() {
         options={{
           title: 'History',
           tabBarLabel: 'History',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text>,
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>📋</Text>
+          ),
         }}
       />
       <Tabs.Screen
@@ -39,23 +57,29 @@ export default function TabsLayout() {
         options={{
           title: 'Progress',
           tabBarLabel: 'Progress',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>📈</Text>,
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>📈</Text>
+          ),
         }}
       />
       <Tabs.Screen
         name="coach"
         options={{
-          title: 'Coach',
+          title: 'Coach Settings',
           tabBarLabel: 'Coach',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🎯</Text>,
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>🎯</Text>
+          ),
         }}
       />
       <Tabs.Screen
         name="equipment"
         options={{
-          title: 'Equipment',
+          title: 'My Equipment',
           tabBarLabel: 'Kit',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚙️</Text>,
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>⚙️</Text>
+          ),
         }}
       />
     </Tabs>
