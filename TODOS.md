@@ -10,16 +10,12 @@ Pick emphasis from least-recently-trained muscle groups rather than pure round-r
 ### Automatic deload — full auto (v2)
 Hold logic exists (hold target on a bad day). Full auto-deload based on sustained stall streak is a v2 feature.
 
-### EAS / dev build setup
-Config done (`eas.json`, `android.package`, 2026-06-10). Remaining: Expo login, cloud build (preview APK), sideload.
-
-### `expo-av` deprecation (low urgency)
-`expo-av` is on a deprecation track in Expo v56; it will eventually be replaced by `expo-audio`. No action required now.
-
 ---
 
 ## Shipped (reference)
 
+- **EAS preview build pipeline** — login, cloud builds, adb sideload all working; build #3 (cf983b8c, 2026-06-11) is on device.
+- **expo-av → expo-audio migration** — forced early: expo-av crashed the app at launch on device. Done in 19ce6b8.
 - **Active-session persistence + resume prompt** — Shipped in commit 5c96021.
 - **CI (tsc + vitest + web export + Pages deploy)** — Shipped in commit 8070b76.
 - **Catalog v3 + restyle pass 2** — Committed 2026-06-10 (da2b0be, 2ecb1f9).
