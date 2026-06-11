@@ -1,6 +1,6 @@
 # TODOS
 
-_Current work queue lives in `docs/wave-plan-2026-06-10.md` (S1–S5). State as of 2026-06-10 (late evening): S1 done. S2: first EAS preview build **succeeded** (commit ffc5396); build #2 (934bf879, includes wall-clock timer fix 8bc66ec) queued. Web QA round-trip done — SPA-fallback + import bugs found, fixed, re-verified live. Locked-screen timer risk pre-empted in code (timers now wall-clock-based; hardware confirmation still via checklist §3/§4). **Next (James):** sideload build #2 APK → run `docs/shakedown-checklist.md` → S4–S5 field use._
+_Current work queue lives in `docs/wave-plan-2026-06-10.md` (S1–S5). State as of 2026-06-11: **S2 complete** — build #3 (cf983b8c) installed on James's phone via adb and boots clean. Build #2 crashed at launch (expo-av referenced a Kotlin class removed from SDK 56's expo-modules-core; diagnosed via adb logcat) → fixed by migrating to expo-audio + real bell.wav (19ce6b8). Earlier: wall-clock timer rewrite (8bc66ec) verified under JS-freeze on web; web SPA-fallback + import bugs fixed and re-verified. **Now at S3:** run `docs/shakedown-checklist.md` on device → S4–S5 field use._
 
 ## Open items
 
