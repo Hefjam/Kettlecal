@@ -64,4 +64,5 @@ _Scripted checklist from the wave plan (S3). Run on the sideloaded EAS preview A
 
 _One line per item is enough. These seed the S4–S5 tuning pass and the next-wave list._
 
--
+- **2026-06-11 (James, build #3):** Leaving the workout screen and resuming **resets the rest timer**. Likely cause: the wall-clock deadline lives in RestTimer component state/refs, so navigating away unmounts it and the deadline is lost — it needs to live in the active-session store to survive unmount (and process death). Not fixed yet — logged for the post-shakedown fix pass.
+- **2026-06-11 (James, build #3):** Feature request: **lock-screen / status-bar indicator of rest time remaining** (likely expo-notifications ongoing notification). Do alongside or after the timer-reset fix above, since both need the deadline persisted outside the component.
