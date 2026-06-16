@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../theme/colors';
-import { Typography } from '../theme/typography';
 import { Exercise, Set, ExerciseTarget } from '../types';
+import { MinusIcon, PlusIcon } from './icons/StepperIcons';
+import { AppIcon } from './icons/AppIcons';
 
 interface SetLoggerProps {
   exercise: Exercise;
@@ -29,27 +30,45 @@ export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: S
   const initReps = useTarget ? target!.targetReps : previousSet?.reps;
   const initWeight = useTarget ? target!.weightKg : previousSet?.weight;
   const initDuration = useTarget ? target!.targetSeconds : previousSet?.duration;
-  const [reps, setReps] = useState(String(initReps ?? ''));
+  const [reps, setReps] = useState(initReps ?? 0);
   const [weight, setWeight] = useState(String(initWeight ?? ''));
   const [duration, setDuration] = useState(String(initDuration ?? ''));
 
   const isReps = exercise.type === 'reps' || exercise.type === 'emom';
   const isTime = exercise.type === 'time';
   const hasWeight = exercise.category === 'kettlebell';
+  const prescribedSetCount = target?.sets;
+  const targetParts = [
+    target?.targetReps != null ? `${target.targetReps} reps` : null,
+    target?.targetSeconds != null ? `${target.targetSeconds}s` : null,
+    target?.weightKg != null ? `${target.weightKg}kg` : null,
+  ].filter(Boolean);
+  const setLabel =
+    prescribedSetCount != null && setNumber <= prescribedSetCount
+      ? `Set ${setNumber} of ${prescribedSetCount}`
+      : `Extra set ${prescribedSetCount != null ? setNumber - prescribedSetCount : setNumber}`;
 
   const handleLog = () => {
     const set: Omit<Set, 'completedAt'> = {};
-    if (isReps && reps) set.reps = Number(reps);
+    if (isReps && reps > 0) set.reps = reps;
     if (hasWeight && weight) set.weight = Number(weight);
     if (isTime && duration) set.duration = Number(duration);
     onLog(set);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const adjustReps = (delta: number) => {
+    setReps((current) => Math.max(0, current + delta));
+    Haptics.selectionAsync();
+  };
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
-        <Text style={styles.setLabel}>Set {setNumber}</Text>
+        <Text style={styles.setLabel}>{setLabel}</Text>
+        {targetParts.length > 0 && (
+          <Text style={styles.targetHint}>Target: {targetParts.join(' · ')}</Text>
+        )}
         {previousSet && (
           <Text style={styles.previous}>
             prev:{' '}
@@ -63,15 +82,26 @@ export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: S
           {isReps && (
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Reps</Text>
-              <TextInput
-                style={styles.input}
-                value={reps}
-                onChangeText={setReps}
-                keyboardType="number-pad"
-                placeholder="0"
-                placeholderTextColor={Colors.text.muted}
-                selectTextOnFocus
-              />
+              <View style={styles.repStepper}>
+                <TouchableOpacity
+                  style={[styles.repStepBtn, reps === 0 && styles.repStepBtnDisabled]}
+                  onPress={() => adjustReps(-1)}
+                  disabled={reps === 0}
+                  hitSlop={STEPPER_HITSLOP}
+                  activeOpacity={0.75}
+                >
+                  <MinusIcon color={reps === 0 ? Colors.text.muted : Colors.text.primary} />
+                </TouchableOpacity>
+                <Text style={styles.repValue}>{reps}</Text>
+                <TouchableOpacity
+                  style={styles.repStepBtn}
+                  onPress={() => adjustReps(1)}
+                  hitSlop={STEPPER_HITSLOP}
+                  activeOpacity={0.75}
+                >
+                  <PlusIcon color={Colors.text.primary} />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           {hasWeight && (
@@ -104,6 +134,7 @@ export function SetLogger({ exercise, setNumber, previousSet, target, onLog }: S
           )}
 
           <TouchableOpacity style={styles.logBtn} onPress={handleLog}>
+            <AppIcon name="action.add" size={24} active />
             <Text style={styles.logBtnText}>LOG SET</Text>
           </TouchableOpacity>
         </View>
@@ -135,6 +166,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: Colors.accent.teal,
   },
+  targetHint: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 16,
+    marginBottom: 8,
+    color: Colors.text.secondary,
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -163,9 +200,40 @@ const styles = StyleSheet.create({
     fontSize: 28,
     textAlign: 'center',
   },
+  repStepper: {
+    height: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.bg.elevated,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  repStepBtn: {
+    width: 50,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.bg.card,
+  },
+  repStepBtnDisabled: {
+    opacity: 0.35,
+  },
+  repValue: {
+    flex: 1,
+    fontFamily: 'VT323_400Regular',
+    color: Colors.accent.acid,
+    fontSize: 28,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
   logBtn: {
     height: 50,
     paddingHorizontal: 16,
+    flexDirection: 'row',
+    gap: 8,
     backgroundColor: Colors.accent.primary,
     borderRadius: 4,
     alignItems: 'center',
@@ -182,3 +250,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+const STEPPER_HITSLOP = { top: 8, bottom: 8, left: 8, right: 8 };

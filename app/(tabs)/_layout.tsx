@@ -1,12 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
-import {
-  TodayIcon,
-  HistoryIcon,
-  ProgressIcon,
-  CoachIcon,
-  KitIcon,
-} from '../../src/components/icons/TabIcons';
+import { BottomNavIcon } from '../../src/components/icons/AppIcons';
 
 export default function TabsLayout() {
   return (
@@ -26,8 +20,8 @@ export default function TabsLayout() {
           letterSpacing: 1,
           marginTop: 2,
         },
-        tabBarActiveTintColor: Colors.accent.acid,
-        tabBarInactiveTintColor: Colors.text.muted,
+        tabBarActiveTintColor: Colors.accent.primary,
+        tabBarInactiveTintColor: Colors.text.secondary,
         headerStyle: { backgroundColor: Colors.bg.secondary },
         headerTintColor: Colors.accent.primary,
         headerTitleStyle: {
@@ -43,7 +37,7 @@ export default function TabsLayout() {
         options={{
           title: 'Today',
           tabBarLabel: 'Today',
-          tabBarIcon: ({ color }) => <TodayIcon color={color as string} size={22} />,
+          tabBarIcon: ({ focused }) => <BottomNavIcon name="today" focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -51,7 +45,7 @@ export default function TabsLayout() {
         options={{
           title: 'History',
           tabBarLabel: 'History',
-          tabBarIcon: ({ color }) => <HistoryIcon color={color as string} size={22} />,
+          tabBarIcon: ({ focused }) => <BottomNavIcon name="history" focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -59,7 +53,7 @@ export default function TabsLayout() {
         options={{
           title: 'Progress',
           tabBarLabel: 'Progress',
-          tabBarIcon: ({ color }) => <ProgressIcon color={color as string} size={22} />,
+          tabBarIcon: ({ focused }) => <BottomNavIcon name="progress" focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -67,7 +61,7 @@ export default function TabsLayout() {
         options={{
           title: 'Coach Settings',
           tabBarLabel: 'Coach',
-          tabBarIcon: ({ color }) => <CoachIcon color={color as string} size={22} />,
+          tabBarIcon: ({ focused }) => <BottomNavIcon name="coach" focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -75,7 +69,7 @@ export default function TabsLayout() {
         options={{
           title: 'My Equipment',
           tabBarLabel: 'Kit',
-          tabBarIcon: ({ color }) => <KitIcon color={color as string} size={22} />,
+          tabBarIcon: ({ focused }) => <BottomNavIcon name="kit" focused={focused} />,
         }}
       />
     </Tabs>

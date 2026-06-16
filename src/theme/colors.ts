@@ -14,6 +14,8 @@ export const Colors = {
     dim: '#c71d69',          // Darker magenta for states
     glow: 'rgba(255,46,136,0.12)',
     glowStrong: 'rgba(255,46,136,0.28)',
+    glowSoft: 'rgba(255,46,136,0.07)',
+    purpGlow: 'rgba(123,47,247,0.10)',
   },
   text: {
     primary: '#fdeaf4',      // Ink — warm off-white

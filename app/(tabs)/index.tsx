@@ -21,6 +21,7 @@ import { generateWorkout, nextSwapTarget } from '../../src/engine/generateWorkou
 import { dayKey } from '../../src/utils/dayKey';
 import { ExerciseTarget } from '../../src/types';
 import { SynthCard } from '../../src/components/SynthCard';
+import { AppIcon } from '../../src/components/icons/AppIcons';
 
 const EMPHASIS_LABEL: Record<string, string> = {
   strength: 'Strength focus',
@@ -120,8 +121,9 @@ export default function TodayScreen() {
 
         {plan && (
           <View style={styles.emphasisBadge}>
+            <AppIcon name="action.skillFocus" size={18} active />
             <Text style={styles.emphasisText}>
-              ★ {EMPHASIS_LABEL[plan.emphasis] ?? plan.emphasis}
+              {EMPHASIS_LABEL[plan.emphasis] ?? plan.emphasis}
             </Text>
           </View>
         )}
@@ -166,7 +168,8 @@ export default function TodayScreen() {
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.swapText}>⇄ Swap</Text>
+                  <AppIcon name="action.swapExercise" size={20} active />
+                  <Text style={styles.swapText}>Swap</Text>
                 </TouchableOpacity>
               </View>
               {t.reason && <Text style={styles.reason}>// {t.reason}</Text>}
@@ -194,7 +197,8 @@ export default function TodayScreen() {
       {plan && plan.targets.length > 0 && (
         <View style={styles.startBar}>
           <TouchableOpacity style={[styles.startBtn, webStartBtnShadow]} onPress={handleStart} activeOpacity={0.85}>
-            <Text style={styles.startBtnText}>▶ Start Workout ({plan.targets.length})</Text>
+            <AppIcon name="action.startWorkout" size={28} active />
+            <Text style={styles.startBtnText}>Start Workout ({plan.targets.length})</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -223,9 +227,12 @@ const styles = StyleSheet.create({
   },
   emphasisBadge: {
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: Colors.accent.acid,
     borderRadius: 2,
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     marginBottom: 24,
   },
@@ -286,6 +293,9 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
   },
   swapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 8,
@@ -324,6 +334,8 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.accent.primary,
   },
   startBtn: {
+    flexDirection: 'row',
+    gap: 10,
     backgroundColor: Colors.accent.primary,
     borderRadius: 4,
     height: 56,

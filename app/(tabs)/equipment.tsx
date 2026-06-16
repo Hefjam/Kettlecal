@@ -18,7 +18,13 @@ import { useRotation } from '../../src/stores/useRotation';
 import { useCoachProfile } from '../../src/stores/useCoachProfile';
 import { useTodayPlan } from '../../src/stores/useTodayPlan';
 import { exportBackup, importBackup, StoreRegistry } from '../../src/data/backup';
-import { EquipmentItem, KettlebellWeight } from '../../src/types';
+import { EquipmentItem } from '../../src/types';
+import {
+  ActionButton,
+  AppIconName,
+  EquipmentCard,
+  KettlebellCard,
+} from '../../src/components/icons/AppIcons';
 
 function notify(title: string, message?: string) {
   if (Platform.OS === 'web') window.alert(message ? `${title}\n\n${message}` : title);
@@ -60,31 +66,18 @@ const EQUIPMENT_LABELS: Record<EquipmentItem, string> = {
   bodyweight: 'Bodyweight',
 };
 
-const EQUIPMENT_ICONS: Record<EquipmentItem, string> = {
-  'pull-up-bar': '🏗️',
-  'dip-bars': '🔧',
-  'gymnastics-rings': '⭕',
-  bands: '🔴',
-  'kettlebell-20kg': '⚫',
-  'kettlebell-24kg': '⚫',
-  bodyweight: '🧍',
+const EQUIPMENT_ICON_NAMES: Record<EquipmentItem, AppIconName> = {
+  'pull-up-bar': 'equipment.pullUpBar',
+  'dip-bars': 'equipment.dipBars',
+  'gymnastics-rings': 'equipment.rings',
+  bands: 'equipment.bands',
+  'kettlebell-20kg': 'kettlebell.20',
+  'kettlebell-24kg': 'kettlebell.24',
+  bodyweight: 'equipment.bodyweight',
 };
 
-function CustomSwitch({ active }: { active: boolean }) {
-  return (
-    <View style={[styles.switchTrack, {
-      backgroundColor: active ? Colors.accent.primary : Colors.bg.elevated,
-      borderColor: active ? Colors.accent.primary : Colors.border,
-    }]}>
-      <View style={[styles.switchKnob, {
-        transform: [{ translateX: active ? 18 : 2 }],
-      }]} />
-    </View>
-  );
-}
-
 const webBg = Platform.OS === 'web' ? {
-  backgroundImage: `repeating-linear-gradient(45deg, rgba(123,47,247,.10) 0 22px, transparent 22px 44px), repeating-linear-gradient(-45deg, rgba(255,46,136,.07) 0 22px, transparent 22px 44px)`,
+  backgroundImage: `repeating-linear-gradient(45deg, ${Colors.accent.purpGlow} 0 22px, transparent 22px 44px), repeating-linear-gradient(-45deg, ${Colors.accent.glowSoft} 0 22px, transparent 22px 44px)`,
 } as any : {};
 
 export default function EquipmentScreen() {
@@ -181,21 +174,20 @@ export default function EquipmentScreen() {
 
       {/* Static equipment */}
       <Text style={styles.sectionLabel}>Training Gear</Text>
-      {equipmentItems.map((item) => {
-        const active = equipment.items.includes(item);
-        return (
-          <TouchableOpacity
-            key={item}
-            style={[styles.itemRow, active && styles.itemRowActive]}
-            onPress={() => handleToggle(item)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.itemIcon}>{EQUIPMENT_ICONS[item]}</Text>
-            <Text style={[Typography.body, { flex: 1, fontWeight: '700' }]}>{EQUIPMENT_LABELS[item]}</Text>
-            <CustomSwitch active={active} />
-          </TouchableOpacity>
-        );
-      })}
+      <View style={styles.iconGrid}>
+        {equipmentItems.map((item) => {
+          const active = equipment.items.includes(item);
+          return (
+            <EquipmentCard
+              key={item}
+              icon={EQUIPMENT_ICON_NAMES[item]}
+              label={EQUIPMENT_LABELS[item]}
+              active={active}
+              onPress={() => handleToggle(item)}
+            />
+          );
+        })}
+      </View>
 
       {/* Kettlebells */}
       <Text style={[styles.sectionLabel, { marginTop: 28 }]}>Kettlebells</Text>
@@ -204,23 +196,16 @@ export default function EquipmentScreen() {
           No kettlebells added yet. Add your kettlebells below.
         </Text>
       ) : (
-        equipment.kettlebells.map((kb) => (
-          <View key={kb.weightKg} style={styles.kbRow}>
-            <Text style={styles.itemIcon}>🔔</Text>
-            <Text style={[Typography.body, { flex: 1, fontWeight: '700' }]}>
-              <Text style={{ fontFamily: 'VT323_400Regular', fontSize: 18, color: Colors.accent.acid }}>
-                {kb.quantity}× {kb.weightKg}kg
-              </Text>
-            </Text>
-            <TouchableOpacity
-              style={styles.removeBtn}
-              onPress={() => handleRemoveKb(kb.weightKg)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.removeBtnText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        ))
+        <View style={styles.iconGrid}>
+          {equipment.kettlebells.map((kb) => (
+            <KettlebellCard
+              key={kb.weightKg}
+              weightKg={kb.weightKg}
+              quantity={kb.quantity}
+              onRemove={() => handleRemoveKb(kb.weightKg)}
+            />
+          ))}
+        </View>
       )}
 
       {/* Add kettlebell */}
@@ -246,9 +231,12 @@ export default function EquipmentScreen() {
             placeholderTextColor={Colors.text.muted}
           />
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={handleAddKb} activeOpacity={0.85}>
-          <Text style={styles.addBtnText}>Add Kettlebell</Text>
-        </TouchableOpacity>
+        <ActionButton
+          icon="action.add"
+          label="Add Kettlebell"
+          onPress={handleAddKb}
+          variant="primary"
+        />
       </View>
 
       {/* Backup */}
@@ -311,57 +299,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 12,
   },
-  itemRow: {
+  iconGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.bg.card,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  itemRowActive: {
-    borderColor: Colors.accent.primary,
-  },
-  itemIcon: { fontSize: 22, marginRight: 12 },
-  switchTrack: {
-    width: 44,
-    height: 26,
-    borderRadius: 13,
-    padding: 2,
-    justifyContent: 'center',
-    borderWidth: 1.5,
-  },
-  switchKnob: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: Colors.text.primary,
-  },
-  kbRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.bg.card,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  removeBtn: {
-    padding: 6,
-    backgroundColor: 'rgba(255,46,136,0.10)',
-    borderRadius: 8,
-    minHeight: 32,
-    minWidth: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  removeBtnText: {
-    color: Colors.status.error,
-    fontSize: 14,
-    fontWeight: '800',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   addKbBox: {
     backgroundColor: Colors.bg.secondary,
@@ -394,20 +335,6 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     fontSize: 15,
     fontWeight: '600',
-  },
-  addBtn: {
-    backgroundColor: Colors.accent.primary,
-    borderRadius: 4,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addBtnText: {
-    fontFamily: 'Bungee_400Regular',
-    color: Colors.text.inverse,
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    fontSize: 13,
   },
   exportBtn: {
     backgroundColor: Colors.bg.card,

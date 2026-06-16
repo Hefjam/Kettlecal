@@ -8,6 +8,7 @@ import { useActiveSession } from '../src/stores/useActiveSession';
 import { freestyleExerciseOptions } from '../src/data/freestyle';
 import { Exercise } from '../src/types';
 import { SynthCard } from '../src/components/SynthCard';
+import { AppIcon } from '../src/components/icons/AppIcons';
 
 // The manual picker, demoted from the front door. A freestyle session carries no
 // coach targets and no emphasis, so completing it does NOT advance the rotation.
@@ -83,7 +84,8 @@ export default function FreestyleScreen() {
             onPress={handleStart}
             activeOpacity={0.85}
           >
-            <Text style={styles.startBtnText}>▶ Start Workout ({selected.length})</Text>
+            <AppIcon name="action.startWorkout" size={28} active />
+            <Text style={styles.startBtnText}>Start Workout ({selected.length})</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -115,7 +117,7 @@ function ExerciseRow({
               {exercise.muscleGroups.join(' · ')}
             </Text>
           </View>
-          {selected && <Text style={styles.checkmark}>✓</Text>}
+          {selected && <AppIcon name="action.complete" size={28} active />}
         </View>
       </SynthCard>
     </TouchableOpacity>
@@ -212,6 +214,8 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.accent.primary,
   },
   startBtn: {
+    flexDirection: 'row',
+    gap: 10,
     backgroundColor: Colors.accent.primary,
     borderRadius: 4,
     height: 56,

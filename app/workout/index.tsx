@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,42 +14,78 @@ import { Colors } from '../../src/theme/colors';
 import { EXERCISES } from '../../src/data/exercises';
 import { useActiveSession } from '../../src/stores/useActiveSession';
 import { useWorkoutHistory } from '../../src/stores/useWorkoutHistory';
+import { useEquipment } from '../../src/stores/useEquipment';
+import { useCoachProfile } from '../../src/stores/useCoachProfile';
 import { ExerciseCard } from '../../src/components/ExerciseCard';
 import { EmomTimer } from '../../src/components/EmomTimer';
-import { Set } from '../../src/types';
+import { AppIcon } from '../../src/components/icons/AppIcons';
+import { nextSwapTarget } from '../../src/engine/generateWorkout';
+import { buildTarget } from '../../src/engine/progression';
+import { findLastLogFor } from '../../src/engine/history';
+import { nextRung } from '../../src/data/ladders';
+import { ownedKbWeightsFor } from '../../src/data/availability';
+import { dayKey } from '../../src/utils/dayKey';
+import { PlannedWorkout, Set } from '../../src/types';
+import {
+  requestRestNotificationPermission,
+  scheduleRestEnd,
+  cancelRestEnd,
+} from '../../src/services/restNotification';
 
 export default function WorkoutScreen() {
   const {
     session,
     currentExerciseIndex,
+    viewedExerciseIndex,
     isRestTimerActive,
     restSeconds,
+    restEndsAt,
     targets,
+    planEmphasis,
     nextExercise,
     prevExercise,
     addSet,
     setExerciseFeedback,
+    setCurrentExercise,
+    swapExercise,
+    removeSet,
+    editSet,
     stopRestTimer,
     completeWorkout,
     abandonWorkout,
   } = useActiveSession();
 
   const { addSession } = useWorkoutHistory();
+  const equipment = useEquipment((s) => s.equipment);
+  const coachProfile = useCoachProfile((s) => s.profile);
+  const sessions = useWorkoutHistory((s) => s.sessions);
+
   const [emomVisible, setEmomVisible] = useState(false);
   const leavingRef = useRef(false);
-  // Tracks whether we've already shown the resume prompt this mount.
   const hasPromptedRef = useRef(false);
+
+  // Request notification permission once on mount
+  useEffect(() => {
+    requestRestNotificationPermission();
+  }, []);
+
+  // Schedule / cancel rest-end notification whenever the deadline changes
+  useEffect(() => {
+    if (restEndsAt && isRestTimerActive) {
+      scheduleRestEnd(restEndsAt);
+    } else {
+      cancelRestEnd();
+    }
+    return () => { cancelRestEnd(); };
+  }, [restEndsAt, isRestTimerActive]);
 
   useEffect(() => {
     if (hasPromptedRef.current) return;
     hasPromptedRef.current = true;
-    // Prompt only for a stale persisted session (from a previous app run).
-    // A freshly-started session will have startedAt within the last few seconds;
-    // a persisted one will be older. 10 s is a generous threshold.
     const staleSession = useActiveSession.getState().session;
     if (!staleSession || staleSession.isCompleted) return;
     const ageMs = Date.now() - new Date(staleSession.startedAt).getTime();
-    if (ageMs < 10_000) return; // just started — no prompt
+    if (ageMs < 10_000) return;
     if (Platform.OS === 'web') {
       const resume = window.confirm('Resume your unfinished workout?');
       if (!resume) {
@@ -78,9 +114,7 @@ export default function WorkoutScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Active workout clock ticker
   const [secondsElapsed, setSecondsElapsed] = useState(0);
-
   useEffect(() => {
     if (!session) return;
     const interval = setInterval(() => {
@@ -96,10 +130,49 @@ export default function WorkoutScreen() {
   }
 
   const currentLog = session.exerciseLogs[currentExerciseIndex];
+  const viewedLog = session.exerciseLogs[viewedExerciseIndex] ?? currentLog;
   const currentExercise = EXERCISES.find((e) => e.id === currentLog?.exerciseId);
+  const viewedExercise = EXERCISES.find((e) => e.id === viewedLog?.exerciseId);
   const totalExercises = session.exerciseLogs.length;
+  const isViewingCurrent = viewedExerciseIndex === currentExerciseIndex;
+  const canLogExtraSet = viewedExerciseIndex < currentExerciseIndex;
 
-  if (!currentExercise || !currentLog) return null;
+  if (!currentExercise || !currentLog || !viewedExercise || !viewedLog) return null;
+
+  // --- Escalation target (ladder promotion or heavier KB, before first set) ---
+  const escalateTarget = (() => {
+    if (!isViewingCurrent || currentLog.sets.length > 0) return null;
+
+    // 1. Try ladder promotion
+    const nextEx = nextRung(currentExercise.id, EXERCISES, equipment);
+    if (nextEx) {
+      return buildTarget(
+        nextEx,
+        findLastLogFor(sessions, nextEx.id),
+        equipment,
+        EXERCISES,
+        [],
+        coachProfile
+      );
+    }
+
+    // 2. Try heavier KB (same exercise, bump weight)
+    if (currentExercise.category === 'kettlebell') {
+      const weights = ownedKbWeightsFor(currentExercise, equipment);
+      const currentTarget = targets[currentExercise.id];
+      const currentWeight = currentTarget?.weightKg;
+      if (currentWeight != null) {
+        const heavier = weights.find((w) => w > currentWeight);
+        if (heavier != null) {
+          return { ...currentTarget, weightKg: heavier, reason: `Escalated → ${heavier}kg` };
+        }
+      }
+    }
+
+    return null;
+  })();
+
+  // --- Handlers ---
 
   const handleAddSet = (set: Omit<Set, 'completedAt'>) => {
     addSet(currentExercise.id, set);
@@ -151,6 +224,89 @@ export default function WorkoutScreen() {
     nextExercise();
   };
 
+  // Mid-workout swap: replaces the viewed upcoming exercise with an alternative
+  const canSwapMid =
+    !isViewingCurrent &&
+    viewedExerciseIndex > currentExerciseIndex &&
+    viewedLog.sets.length === 0;
+
+  const handleSwapMid = canSwapMid
+    ? () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        const syntheticPlan: PlannedWorkout = {
+          date: dayKey(),
+          emphasis: planEmphasis ?? 'strength',
+          targets: session.exerciseLogs.map(
+            (log) =>
+              targets[log.exerciseId] ?? { exerciseId: log.exerciseId, sets: 0, reason: '' }
+          ),
+        };
+        const newTarget = nextSwapTarget(
+          syntheticPlan,
+          viewedExerciseIndex,
+          sessions,
+          equipment,
+          coachProfile
+        );
+        if (newTarget.exerciseId !== viewedLog.exerciseId) {
+          swapExercise(viewedExerciseIndex, newTarget);
+        }
+      }
+    : undefined;
+
+  const handleEscalate = escalateTarget
+    ? () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        swapExercise(currentExerciseIndex, escalateTarget);
+      }
+    : undefined;
+
+  // Swap the current exercise before any sets are logged (#2)
+  const canSwapCurrent =
+    isViewingCurrent && currentLog.sets.length === 0;
+
+  const handleSwapCurrent = canSwapCurrent
+    ? (reason?: string) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        const syntheticPlan: PlannedWorkout = {
+          date: dayKey(),
+          emphasis: planEmphasis ?? 'strength',
+          targets: session.exerciseLogs.map(
+            (log) =>
+              targets[log.exerciseId] ?? { exerciseId: log.exerciseId, sets: 0, reason: '' }
+          ),
+        };
+        const newTarget = nextSwapTarget(
+          syntheticPlan,
+          currentExerciseIndex,
+          sessions,
+          equipment,
+          coachProfile
+        );
+        if (newTarget.exerciseId !== currentLog.exerciseId) {
+          swapExercise(currentExerciseIndex, newTarget, reason);
+        }
+      }
+    : undefined;
+
+  // Remove a logged set with confirmation (#4)
+  const handleRemoveSet = (setIndex: number) => {
+    const doRemove = () => removeSet(viewedExercise!.id, setIndex);
+    if (Platform.OS === 'web') {
+      if (window.confirm('Remove this set?')) doRemove();
+      return;
+    }
+    Alert.alert('Remove set?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: doRemove },
+    ]);
+  };
+
+  // Edit a logged set (#4)
+  const handleEditSet = (setIndex: number, patch: { reps?: number; weight?: number; duration?: number }) => {
+    editSet(viewedExercise!.id, setIndex, patch);
+  };
+
   const elapsedMin = Math.floor(secondsElapsed / 60);
   const elapsedSec = secondsElapsed % 60;
 
@@ -171,7 +327,10 @@ export default function WorkoutScreen() {
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           activeOpacity={0.7}
         >
-          <Text style={styles.abandonBtnText}>✕ Abandon</Text>
+          <View style={styles.topActionInner}>
+            <AppIcon name="action.remove" size={20} active />
+            <Text style={styles.abandonBtnText}>Abandon</Text>
+          </View>
         </TouchableOpacity>
 
         <View style={styles.timerPill}>
@@ -185,6 +344,7 @@ export default function WorkoutScreen() {
           onPress={handleFinish}
           activeOpacity={0.8}
         >
+          <AppIcon name="action.complete" size={20} active />
           <Text style={styles.finishBtnText}>Finish</Text>
         </TouchableOpacity>
       </View>
@@ -192,7 +352,8 @@ export default function WorkoutScreen() {
       {/* Exercise nav dots */}
       <View style={styles.dotRow}>
         {session.exerciseLogs.map((log, i) => {
-          const isActive = i === currentExerciseIndex;
+          const isActive = i === viewedExerciseIndex;
+          const isCurrent = i === currentExerciseIndex;
           const isDone = log.sets.length > 0;
           return (
             <View
@@ -200,6 +361,7 @@ export default function WorkoutScreen() {
               style={[
                 styles.dot,
                 isActive && styles.dotActive,
+                isCurrent && styles.dotCurrent,
                 isDone && styles.dotDone,
                 isActive && isDone && styles.dotActiveDone,
               ]}
@@ -210,30 +372,40 @@ export default function WorkoutScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.progressCounter}>
-          Exercise {currentExerciseIndex + 1} of {totalExercises}
+          Exercise {viewedExerciseIndex + 1} of {totalExercises}
+          {!isViewingCurrent ? ' · Preview' : ''}
         </Text>
 
         <ExerciseCard
-          key={currentExercise.id}
-          exercise={currentExercise}
-          log={currentLog}
-          target={targets[currentExercise.id]}
-          isRestActive={isRestTimerActive}
+          key={viewedExercise.id}
+          exercise={viewedExercise}
+          log={viewedLog}
+          target={targets[viewedExercise.id]}
+          isCurrentExercise={isViewingCurrent}
+          isRestActive={isViewingCurrent && isRestTimerActive}
           restSeconds={restSeconds}
+          restEndsAt={restEndsAt}
+          canLogExtraSet={canLogExtraSet}
           onAddSet={handleAddSet}
-          onFeedbackChange={(feedback) => setExerciseFeedback(currentExercise.id, feedback)}
+          onLogExtraSet={() => setCurrentExercise(viewedExerciseIndex)}
+          onFeedbackChange={(feedback) => setExerciseFeedback(viewedExercise.id, feedback)}
           onRestComplete={stopRestTimer}
           onRestSkip={stopRestTimer}
           onEmomPress={() => setEmomVisible(true)}
+          onSwapMid={handleSwapMid}
+          onEscalate={handleEscalate}
+          onSwapCurrent={handleSwapCurrent}
+          onEditSet={handleEditSet}
+          onRemoveSet={handleRemoveSet}
         />
       </ScrollView>
 
       {/* Prev / Next */}
       <View style={styles.navBar}>
         <TouchableOpacity
-          style={[styles.navBtn, currentExerciseIndex === 0 && styles.navBtnDisabled]}
+          style={[styles.navBtn, viewedExerciseIndex === 0 && styles.navBtnDisabled]}
           onPress={handlePrev}
-          disabled={currentExerciseIndex === 0}
+          disabled={viewedExerciseIndex === 0}
           activeOpacity={0.7}
         >
           <Text style={styles.navBtnText}>← Prev</Text>
@@ -242,11 +414,11 @@ export default function WorkoutScreen() {
           style={[
             styles.navBtn,
             styles.navBtnPrimary,
-            currentExerciseIndex === totalExercises - 1 && styles.navBtnDisabled,
+            viewedExerciseIndex === totalExercises - 1 && styles.navBtnDisabled,
             webNavBtnShadow,
           ]}
           onPress={handleNext}
-          disabled={currentExerciseIndex === totalExercises - 1}
+          disabled={viewedExerciseIndex === totalExercises - 1}
           activeOpacity={0.85}
         >
           <Text style={styles.navBtnPrimaryText}>Next →</Text>
@@ -290,6 +462,9 @@ const styles = StyleSheet.create({
     color: Colors.accent.teal,
   },
   finishBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: Colors.accent.teal,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -317,6 +492,10 @@ const styles = StyleSheet.create({
   dotActive: {
     backgroundColor: Colors.accent.primary,
     width: 24,
+  },
+  dotCurrent: {
+    borderWidth: 1.5,
+    borderColor: Colors.accent.acid,
   },
   dotDone: {
     backgroundColor: Colors.accent.teal,
@@ -379,5 +558,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textTransform: 'uppercase',
     letterSpacing: 2,
+  },
+  topActionInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
 });

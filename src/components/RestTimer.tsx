@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
@@ -12,17 +13,21 @@ import { Colors } from '../theme/colors';
 
 interface RestTimerProps {
   seconds: number;
+  endsAt: number | null;
   onComplete: () => void;
   onSkip: () => void;
 }
 
-export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
-  const [remaining, setRemaining] = useState(seconds);
+export function RestTimer({ seconds, endsAt, onComplete, onSkip }: RestTimerProps) {
+  const deadline = endsAt ?? Date.now() + seconds * 1000;
+  const [remaining, setRemaining] = useState(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
   // JS timers pause while the app is backgrounded/locked, so remaining time is
   // derived from a wall-clock deadline rather than counting interval ticks.
-  const endsAtRef = useRef(Date.now() + seconds * 1000);
-  const lastShownRef = useRef(seconds);
+  const endsAtRef = useRef(deadline);
+  const lastShownRef = useRef(remaining);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const completedRef = useRef(false);
+  const player = useAudioPlayer(require('../../assets/sounds/bell.wav'));
   const bgOpacity = useSharedValue(0.1);
 
   const bgStyle = useAnimatedStyle(() => ({
@@ -44,10 +49,26 @@ export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
   }, [bgOpacity]);
 
   useEffect(() => {
-    endsAtRef.current = Date.now() + seconds * 1000;
-    lastShownRef.current = seconds;
-    setRemaining(seconds);
-  }, [seconds]);
+    const nextDeadline = endsAt ?? Date.now() + seconds * 1000;
+    const nextRemaining = Math.max(0, Math.ceil((nextDeadline - Date.now()) / 1000));
+    endsAtRef.current = nextDeadline;
+    lastShownRef.current = nextRemaining;
+    completedRef.current = false;
+    setRemaining(nextRemaining);
+  }, [endsAt, seconds]);
+
+  const complete = useCallback(() => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      player.seekTo(0);
+      player.play();
+    } catch {
+      // Audio unavailable — haptics-only mode
+    }
+    onComplete();
+  }, [onComplete, player]);
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
@@ -63,14 +84,13 @@ export function RestTimer({ seconds, onComplete, onSkip }: RestTimerProps) {
       }
       if (r <= 0) {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        onComplete();
+        complete();
       }
     }, 250);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [seconds, onComplete, pulse]);
+  }, [complete, pulse]);
 
   const minutes = Math.floor(remaining / 60);
   const secs = remaining % 60;

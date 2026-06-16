@@ -64,6 +64,13 @@ _Scripted checklist from the wave plan (S3). Run on the sideloaded EAS preview A
 
 _One line per item is enough. These seed the S4–S5 tuning pass and the next-wave list._
 
+### Actioned in working tree
+
+- **2026-06-12:** Rest timer deadline moved into `useActiveSession` and persisted as `restEndsAt`; leaving/re-entering the workout screen no longer resets the active rest timer. Rest completion now reuses `bell.wav` via `expo-audio` plus haptics while JS is active.
+- **2026-06-12:** Set logging now shows the prescribed target in the logger, auto-advances after the final prescribed set, and offers extra sets only through an explicit opt-in by returning to a completed exercise.
+- **2026-06-12:** Workout browsing now uses a separate preview position, so Prev/Next can inspect upcoming exercises without moving the current logging position.
+- **2026-06-12:** RPE and pain controls now include concise in-UI explanations while retaining the self-tracking/not-medical-advice disclaimer.
+
 - **2026-06-11 (James, build #3):** Leaving the workout screen and resuming **resets the rest timer**. Likely cause: the wall-clock deadline lives in RestTimer component state/refs, so navigating away unmounts it and the deadline is lost — it needs to live in the active-session store to survive unmount (and process death). Not fixed yet — logged for the post-shakedown fix pass.
 - **2026-06-11 (James, build #3):** Feature request: **lock-screen / status-bar indicator of rest time remaining** (likely expo-notifications ongoing notification). Do alongside or after the timer-reset fix above, since both need the deadline persisted outside the component.
 - **2026-06-11 (James, build #3):** **RPE and pain inputs need a small in-UI explanation** — what each means and what input is being requested (e.g. RPE = Rating of Perceived Exertion, 1–10, how hard the set felt / how many reps were left in the tank; pain = 0–10 discomfort in the involved area, with 4+ downranking the exercise and 6+ avoiding the movement pattern). Likely an info affordance on the feedback controls in the workout logging UI. Wording must respect the self-tracking-not-medical-advice disclaimers.

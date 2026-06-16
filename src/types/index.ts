@@ -200,6 +200,7 @@ export interface ExerciseLog {
   exerciseId: string;
   sets: Set[];
   feedback?: ExerciseFeedback;
+  swapReason?: string;
 }
 
 export interface WorkoutSession {

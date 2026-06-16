@@ -1,6 +1,7 @@
 import React from 'react';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { Platform } from 'react-native';
+import { Colors } from '../../theme/colors';
 
 interface IconProps {
   size?: number;
@@ -15,7 +16,7 @@ function svgStyle(color: string) {
     : {};
 }
 
-export function TodayIcon({ size = 22, color = '#fdeaf4' }: IconProps) {
+export function TodayIcon({ size = 22, color = Colors.text.primary }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={svgStyle(color)}>
       <Path d="M3 10.5L12 3l9 7.5" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -24,7 +25,7 @@ export function TodayIcon({ size = 22, color = '#fdeaf4' }: IconProps) {
   );
 }
 
-export function HistoryIcon({ size = 22, color = '#fdeaf4' }: IconProps) {
+export function HistoryIcon({ size = 22, color = Colors.text.primary }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={svgStyle(color)}>
       <Circle cx="12" cy="12" r="8.5" stroke={color} strokeWidth="1.8" />
@@ -33,7 +34,7 @@ export function HistoryIcon({ size = 22, color = '#fdeaf4' }: IconProps) {
   );
 }
 
-export function ProgressIcon({ size = 22, color = '#fdeaf4' }: IconProps) {
+export function ProgressIcon({ size = 22, color = Colors.text.primary }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={svgStyle(color)}>
       <Path d="M3 21h18" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
@@ -45,7 +46,7 @@ export function ProgressIcon({ size = 22, color = '#fdeaf4' }: IconProps) {
   );
 }
 
-export function CoachIcon({ size = 22, color = '#fdeaf4' }: IconProps) {
+export function CoachIcon({ size = 22, color = Colors.text.primary }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={svgStyle(color)}>
       <Circle cx="12" cy="12" r="8" stroke={color} strokeWidth="1.8" />
@@ -55,7 +56,7 @@ export function CoachIcon({ size = 22, color = '#fdeaf4' }: IconProps) {
   );
 }
 
-export function KitIcon({ size = 22, color = '#fdeaf4' }: IconProps) {
+export function KitIcon({ size = 22, color = Colors.text.primary }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={svgStyle(color)}>
       {/* Handle arch */}

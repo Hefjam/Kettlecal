@@ -4,7 +4,24 @@ import { View, Platform } from 'react-native';
 import { useFonts, Bungee_400Regular } from '@expo-google-fonts/bungee';
 import { Anton_400Regular } from '@expo-google-fonts/anton';
 import { VT323_400Regular } from '@expo-google-fonts/vt323';
+import * as Notifications from 'expo-notifications';
 import { Colors } from '../src/theme/colors';
+import { setupNotificationChannel } from '../src/services/restNotification';
+
+// Show notifications in foreground (needed for rest-end alert while app is open)
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+if (Platform.OS === 'android') {
+  setupNotificationChannel();
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
